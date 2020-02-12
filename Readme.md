@@ -16,24 +16,22 @@ This document outlines the steps for setting up a functioning development enviro
 
 	Add `"vpnKitPortMaxIdleTime": 0` to *~/Library/Group Containers/group.com.docker/settings.json*.
 	
-	```json
-    {
-        "diskSizeMiB" : 61035,
-        "memoryMiB" : 2048,
-        "dockerAppLaunchPath" : "/Applications/Docker.app",
-        "displayedWelcomeMessage" : true,
-        "settingsVersion" : 1,
-        "buildNumber" : "29268",
-        "proxyHttpMode" : "system",
-        "channelID" : "stable",
-        "version" : "2.0.0.0-mac82",
-        "cpus" : 4,
-        "linuxDaemonConfigCreationDate" : "2018-08-02 13:43:59 +0000",
-        "displayedWelcomeWhale" : true,
-        "diskPath" : "Library/Containers/com.docker.docker/Data/vms/0/Docker.raw",
-        "vpnKitPortMaxIdleTime": 0
-    }
-    ```
+        {
+            "diskSizeMiB" : 61035,
+            "memoryMiB" : 2048,
+            "dockerAppLaunchPath" : "/Applications/Docker.app",
+            "displayedWelcomeMessage" : true,
+            "settingsVersion" : 1,
+            "buildNumber" : "29268",
+            "proxyHttpMode" : "system",
+            "channelID" : "stable",
+            "version" : "2.0.0.0-mac82",
+            "cpus" : 4,
+            "linuxDaemonConfigCreationDate" : "2018-08-02 13:43:59 +0000",
+            "displayedWelcomeWhale" : true,
+            "diskPath" : "Library/Containers/com.docker.docker/Data/vms/0/Docker.raw",
+            "vpnKitPortMaxIdleTime": 0
+        }
 
 	After installation, use either the command line or the menu bar to login into Docker Cloud with your FuseMind email address.
 
