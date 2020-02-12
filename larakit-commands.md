@@ -1,83 +1,66 @@
 # Larakit Commands
 
-## Docker Stack Commands
+## Laradock commands
 
--	Start the stack
+-	Install Laradock
 
-		larakit up
+		larakit laradock install
 
--	Shut down the stack    
+-	Pull latest Laradock update
 
-    	larakit down
+    	larakit laradock pull
 
--	Show service status
+-	Copy custom config files to Laradock
 
-    	larakit ps
+    	larakit laradock config
 
--	Retreive logs
+
+## Docker (Laradock) stack commands
+
+-	Launch service stack
+
+		larakit up -d [service, ...]
+
+-	Shutdown service stack
+
+		larakit down
+
+-	List running services
+
+		larakit ps
+
+-	Show service logs
 
 		larakit logs
+		
 
 ## Project Creation Commands
 
 -	Create a new Laravel  PHP 7 project
 
-    ```
-    devkit run php74 composer create-project --prefer-dist laravel/laravel projectdir
-    ```
+    	larakit composer create-project --prefer-dist laravel/laravel projectdir
+
 
 ## Project Commands : run from top level project directory
 
--	Update dependencies for PHP7 project
+-	Update dependencies for a project
 
-	```
-	devkit run php74 composer update
-	```
+		larakit composer update
 
--	Update dependencies for PHP5 project
-
-	```
-	devkit run php56 composer update
-	```
 
 -	Start a bash shell in the project
-	```
-	devkit exec php74 bash
-	```
 
-## Project Shortcut Commands : run from top level project directory
+		larakit bash
 
-ADD `DEVKIT_SERVICE=php74` or `DEVKIT_SERVICE=php56` to the project's *.env* file.
 
--	Update dependencies
+-	Run PHPUnit
+	
+		larakit ./vendor/bin/phpunit
 
-	```
-	devkit composer update
-	```
 
--	Run **artisan**
+-	Run NPM
 
-	```
-	devkit ./artisan
-	```
-
--	Run **npm**
-
-	```
-	devkit npm install
-	```
-
--	Run **phpunit**
-
-	```
-	devkit ./vendor/bin/phpunit
-	```
-
--	Launch **bash** in the project's container
-
-	```
-	devkit bash
-	```
-
+		larakit npm ...
+		
 
 
