@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+
+LARAKIT_HOME=$( dirname "${BASH_SOURCE[0]}" )
+LARADOCK_HOME="${LARAKIT_HOME}/laradock"
+
+usage() {
+    printf "\nUsage: larakit command\n"
+    printf "\thelp\t\tShow this message.\n"
+    printf "\tinstall\t\tInstall Laradock.\n"
+    printf "\tupdate\t\tUpdate Laradock.\n"
+    printf "\tup\t\tLaunch Laradock containers.\n"
+    printf "\tdown\t\tShutdown Laradock containers.\n"
+    printf "\tps\t\tDisplay running containers.\n"
+    printf "\tlogs\t\tDisplay container logs.\n"
+    printf "\n"
+}
+
+copyConfigs() {
+    cwd=$( pwd )
+
+    cd ${LARAKIT_HOME}
+
+    cp configs/env-laradock laradock/.env
+    cp configs/nginx-sites.conf laradock/nginx/sites/projects.conf
+    cp configs/docker-compose.yml laradock/docker-compose.yml
+
+    cd ${cwd}
+}
+
+installLaradock() {
+    cwd=$( pwd )
+    cd ${LARAKIT_HOME}
+
+    git clone https://github.com/Laradock/laradock.git laradock
+
+    copyConfigs
+
+    cd ${cwd}
+}
+
+updateLaradock() {
+    cwd=$( pwd )
+    cd ${LARADOCK_HOME}
+
+    git reset --hard
+    git pull
+
+    copyConfigs
+
+    cd ${cwd}
+}
+
+launchLaradock() {
+    cwd=$( pwd )
+    cd ${LARADOCK_HOME}
+
+    docker-compose up -d nginx
+
+    cd ${cwd}
+}
+
+shutdownLaradock() {
+    cwd=$( pwd )
+    cd ${LARADOCK_HOME}
+
+    docker-compose down
+
+    cd ${cwd}
+}
+
+cdAndRun() {
+    newDirectory=$1
+    command=$2
+
+    cwd=$( pwd )
+
+    $command
+
+    cd ${cwd}
+}
+
+
+command=$1
+shift
+
+case "${command}" in
+    down)
+        cdAndRun ${LARADOCK_HOME} shutdownLaradock
+        ;;
+
+    help)
+        usage
+        ;;
+
+    install)
+        cdAndRun ${LARAKIT_HOME} installLaradock
+        ;;
+
+    logs)
+        cdAndRun ${LARADOCK_HOME} logs
+        ;;
+
+    ps)
+        cdAndRun ${LARADOCK_HOME} ps
+        ;;
+
+    up)
+        cdAndRun ${LARADOCK_HOME} launchLaradock
+        ;;
+
+    update)
+        cdAndRun ${LARAKIT_HOME} updateLaradock
+        ;;
+
+    *)
+        usage;;
+esac
