@@ -38,29 +38,29 @@
 
 -	Create a new Laravel  PHP 7 project
 
-    	larakit composer create-project --prefer-dist laravel/laravel projectdir
+    	larakit exec|run composer create-project --prefer-dist laravel/laravel projectdir
 
 
 ## Project Commands : run from top level project directory
 
 -	Update dependencies for a project
 
-		larakit composer update
+		larakit exec|run composer update
 
 
 -	Start a bash shell in the project
 
-		larakit bash
+		larakit exec|run bash
 
 
 -	Run PHPUnit
 	
-		larakit ./vendor/bin/phpunit
+		larakit exec|run ./vendor/bin/phpunit
 
 
 -	Run NPM
 
-		larakit npm ...
+		larakit exec|run npm ...
 		
 
 

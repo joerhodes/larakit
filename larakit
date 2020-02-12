@@ -1,117 +1,155 @@
 #!/usr/bin/env bash
 
-LARAKIT_HOME=$( dirname "${BASH_SOURCE[0]}" )
+PROJECTDIR=$( pwd )
+PROJECT=$( basename "${PROJECTDIR}" )
+LARAKIT_HOME=$(dirname "${BASH_SOURCE[0]}")
 LARADOCK_HOME="${LARAKIT_HOME}/laradock"
 
 usage() {
     printf "\nUsage: larakit command\n"
-    printf "\thelp\t\tShow this message.\n"
-    printf "\tinstall\t\tInstall Laradock.\n"
-    printf "\tupdate\t\tUpdate Laradock.\n"
-    printf "\tup\t\tLaunch Laradock containers.\n"
-    printf "\tdown\t\tShutdown Laradock containers.\n"
-    printf "\tps\t\tDisplay running containers.\n"
-    printf "\tlogs\t\tDisplay container logs.\n"
+    printf "\thelp\t\t\tShow this message.\n"
+    printf "\tlaradock install\tInstall Laradock.\n"
+    printf "\tlaradock pull\t\tPull down lastest Laradock updates.\n"
+    printf "\tlaradock config\t\tCopy custom config files to laradock.\n"
+    printf "\tup -d [service, ...]\tLaunch Laradock services.\n"
+    printf "\tdown\t\t\tShutdown Laradock services.\n"
+    printf "\tps\t\t\tDisplay running containers.\n"
+    printf "\tlogs\t\t\tDisplay container logs.\n"
     printf "\n"
 }
 
+loadSshKeys() {
+    # load user's SSH keys if they have not been loaded yet
+    keys=$(ssh-add -L)
+    [ -n "${keys}" ] || {
+        printf "\nLoading SSH Keys for SSH Agent\n"
+        ssh-add -K
+    }
+}
+
 copyConfigs() {
-    cwd=$( pwd )
-
-    cd ${LARAKIT_HOME}
-
-    cp configs/env-laradock laradock/.env
-    cp configs/nginx-sites.conf laradock/nginx/sites/projects.conf
-    cp configs/docker-compose.yml laradock/docker-compose.yml
-
-    cd ${cwd}
+    cp "${LARAKIT_HOME}"/configs/env-laradock "${LARADOCK_HOME}"/.env
+    cp "${LARAKIT_HOME}"/configs/nginx-sites.conf "${LARADOCK_HOME}"/nginx/sites/projects.conf
+    cp "${LARAKIT_HOME}"/configs/docker-compose.yml "${LARADOCK_HOME}"/docker-compose.yml
 }
 
 installLaradock() {
-    cwd=$( pwd )
-    cd ${LARAKIT_HOME}
+    [ -d "${LARADOCK_HOME}" ] && {
+        printf "Laradock appears to be installed.  Try update instead!\n"
+        exit
+    }
+
+    cwd=$(pwd)
+    cd "${LARAKIT_HOME}"
 
     git clone https://github.com/Laradock/laradock.git laradock
 
-    copyConfigs
-
-    cd ${cwd}
+    cd "${cwd}"
 }
 
 updateLaradock() {
-    cwd=$( pwd )
-    cd ${LARADOCK_HOME}
+    [ ! -d "${LARADOCK_HOME}" ] && {
+        printf "Laradock is missing.  Try install instead!\n"
+        exit
+    }
+
+    cwd=$(pwd)
+    cd "${LARAKIT_HOME}"
 
     git reset --hard
     git pull
 
-    copyConfigs
-
-    cd ${cwd}
+    cd "${cwd}"
 }
 
-launchLaradock() {
-    cwd=$( pwd )
-    cd ${LARADOCK_HOME}
+laradockCommand() {
+    subCommand=$1
+    shift
 
-    docker-compose up -d nginx
+    case "${subCommand}" in
+    install)
+        installLaradock
+        copyConfigs
+        ;;
 
-    cd ${cwd}
+    pull)
+        updateLaradock
+        copyConfigs
+        ;;
+
+    config)
+        copyConfigs
+        ;;
+
+    *)
+        printf "\nUnknown larakit laradock command: %s\n" ${subCommand}
+        ;;
+    esac
 }
 
-shutdownLaradock() {
-    cwd=$( pwd )
-    cd ${LARADOCK_HOME}
+runService() {
+    loadSshKeys
 
-    docker-compose down
+    [ "${PROJECTDIR}" != "${HOME}/Sites" ] && {
+        printf "Working directory will be /var/www\n"
+        PROJECT=''
+    }
 
-    cd ${cwd}
+    cd "${LARADOCK_HOME}"
+    docker-compose run --rm -w /var/www/"${PROJECT}" $*
 }
 
-cdAndRun() {
-    newDirectory=$1
-    command=$2
+execService() {
+    [ "${PROJECTDIR}" != "${HOME}/Sites" ] && {
+        printf "Working directory will be /var/www\n"
+        PROJECT=''
+    }
 
-    cwd=$( pwd )
+    MEMORY_LIMIT=''
+    [ "$1" = 'composer' ] && {
+        MEMORY_LIMIT='-e COMPOSER_MEMORY_LIMIT=-1'
+    }
 
-    $command
+    container=$( docker ps --filter=name='laradock_workspace*' --format='{{.Names}}')
+    [ -z "${container}" ] && {
+        printf "\nLaradock workspace service is not running.  Use larakit run instead\n"
+        exit
+    }
 
-    cd ${cwd}
+    docker exec -it -w /var/www/"${PROJECT}" ${MEMORY_LIMIT} ${container} $*
 }
 
-
+workingDir=$(pwd)
 command=$1
 shift
 
 case "${command}" in
-    down)
-        cdAndRun ${LARADOCK_HOME} shutdownLaradock
-        ;;
+help)
+    usage
+    ;;
 
-    help)
-        usage
-        ;;
+laradock)
+    laradockCommand $*
+    ;;
 
-    install)
-        cdAndRun ${LARAKIT_HOME} installLaradock
-        ;;
+exec)
+    execService $*
+    ;;
 
-    logs)
-        cdAndRun ${LARADOCK_HOME} logs
-        ;;
+run)
+    runService workspace $*
+    ;;
 
-    ps)
-        cdAndRun ${LARADOCK_HOME} ps
-        ;;
+up)
+    loadSshKeys
+    cd "${LARADOCK_HOME}"
+    docker-compose up $*
+    ;;
 
-    up)
-        cdAndRun ${LARADOCK_HOME} launchLaradock
-        ;;
-
-    update)
-        cdAndRun ${LARAKIT_HOME} updateLaradock
-        ;;
-
-    *)
-        usage;;
+*)
+    cd "${LARADOCK_HOME}"
+    docker-compose $command $*
+    ;;
 esac
+
+cd "${workingDir}"
