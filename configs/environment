@@ -1,0 +1,4 @@
+APP_CODE_PATH_HOST="~/Sites"
+PHP_VERSION="7.4"
+DEFAULT_SERVICES="nginx php-worker redis beanstalkd beanstalkd-console"
+PHP_SERVICES="php-fpm php-worker laravel-horizon"

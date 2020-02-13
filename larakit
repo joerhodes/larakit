@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
 # larakit configuration
-PROJECTDIR=$( pwd )
-PROJECT=$( basename "${PROJECTDIR}" )
-SITESDIR=$( dirname "${PROJECTDIR}" )
+PROJECTDIR=$(pwd)
+PROJECT=$(basename "${PROJECTDIR}")
+SITESDIR=$(dirname "${PROJECTDIR}")
 LARAKIT_HOME=$(dirname "${BASH_SOURCE[0]}")
 LARADOCK_HOME="${LARAKIT_HOME}/laradock"
+COMPOSE_CONFIGS='-f docker-compose.yml -f ../configs/docker-compose.override.yml'
 
-# laradock environment overrides
-APP_CODE_PATH_HOST=~/Sites
-PHP_VERSION=${PHP_VERSION:-7.2}
+# load environment overrides
+source "${LARAKIT_HOME}"/configs/environment
 
 usage() {
     printf "\nUsage: larakit command\n"
@@ -19,10 +19,11 @@ usage() {
     printf "\tlaradock config\t\t\tCopy custom config files to laradock.\n"
     printf "\texec command [arg...]\t\tRun a command in the workspace container.\n"
     printf "\trun service command [arg...]\tLaunch the service container and run the command.\n"
-    printf "\tup [options] [service...]\tLaunch one or more services.\n"
+    printf "\tup [service...]\t\t\tLaunch one or more services.\n"
     printf "\tdown\t\t\t\tShutdown Laradock services.\n"
     printf "\tps\t\t\t\tDisplay running containers.\n"
     printf "\tlogs\t\t\t\tDisplay container logs.\n"
+    printf "\tswitch version\t\t\tSwitch containers to specified PHP version\n"
     printf "\n"
     printf "Additional commands and options are passed directly to docker-compose.\n"
     printf "Run 'docker-compose help' for more information.\n"
@@ -41,7 +42,6 @@ loadSshKeys() {
 copyConfigs() {
     cp "${LARADOCK_HOME}"/env-example "${LARADOCK_HOME}"/.env
     cp "${LARAKIT_HOME}"/configs/nginx-sites.conf "${LARADOCK_HOME}"/nginx/sites/projects.conf
-    cp "${LARAKIT_HOME}"/configs/docker-compose.override.yml "${LARADOCK_HOME}"/docker-compose.override.yml
 }
 
 installLaradock() {
@@ -67,7 +67,6 @@ updateLaradock() {
     cwd=$(pwd)
     cd "${LARAKIT_HOME}"
 
-    git reset --hard
     git pull
 
     cd "${cwd}"
@@ -107,7 +106,7 @@ runService() {
     }
 
     cd "${LARADOCK_HOME}"
-    docker-compose run --rm -w /var/www/"${PROJECT}" $*
+    docker-compose ${COMPOSE_CONFIGS} run --rm -w /var/www/"${PROJECT}" $*
 }
 
 execService() {
@@ -121,13 +120,55 @@ execService() {
         MEMORY_LIMIT='-e COMPOSER_MEMORY_LIMIT=-1'
     }
 
-    container=$( docker ps --filter=name='laradock_workspace*' --format='{{.Names}}')
+    container=$(docker ps --filter=name='laradock_workspace*' --format='{{.Names}}')
     [ -z "${container}" ] && {
         printf "\nLaradock workspace service is not running.  Use larakit run instead\n"
         exit
     }
 
     docker exec -it -w /var/www/"${PROJECT}" ${MEMORY_LIMIT} ${container} $*
+}
+
+stackRunning() {
+    containers=$(docker ps --filter=name='laradock_*' --format='{{.Names}}')
+    [ -n "${containers}" ]
+    return $?
+}
+
+updateEnvironment() {
+    printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST}"
+    printf "PHP_VERSION=\"%s\"\n" "$1"
+    printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES}"
+    printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES}"
+}
+
+changePhpVersion() {
+    newVersion=$1
+
+    case "${newVersion}" in
+    5.6 | 7.2 | 7.3 | 7.4) ;;
+
+    *)
+        printf "Invalid PHP version!  Use of one 7.2, 7.3, 7.4 or 5.6 (if desperate)\n"
+        exit
+        ;;
+    esac
+
+set -x
+    cwd=$(pwd)
+    cd ${LARADOCK_HOME}
+
+    stackRunning && {
+        docker-compose ${COMPOSE_CONFIGS} down
+    }
+
+    updateEnvironment $newVersion > "${LARAKIT_HOME}"/configs/environment
+
+    source "${LARAKIT_HOME}"/configs/environment
+
+    docker-compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
+
+    cd "${cwd}"
 }
 
 export APP_CODE_PATH_HOST PHP_VERSION
@@ -156,12 +197,20 @@ run)
 up)
     loadSshKeys
     cd "${LARADOCK_HOME}"
-    docker-compose -f docker-compose.yml -f docker-compose.override.yml up $*
+    SERVICES="$@"
+    [ -z "${SERVICES}" ] && {
+        SERVICES="${DEFAULT_SERVICES}"
+    }
+    docker-compose ${COMPOSE_CONFIGS} up -d $SERVICES
+    ;;
+
+switch)
+    changePhpVersion $*
     ;;
 
 *)
     cd "${LARADOCK_HOME}"
-    docker-compose $command $*
+    docker-compose ${COMPOSE_CONFIGS} $command $*
     ;;
 esac
 
