@@ -8,9 +8,6 @@ LARAKIT_HOME=$(dirname "${BASH_SOURCE[0]}")
 LARADOCK_HOME="${LARAKIT_HOME}/laradock"
 COMPOSE_CONFIGS='-f docker-compose.yml -f ../configs/docker-compose.override.yml'
 
-# load environment overrides
-source "${LARAKIT_HOME}"/configs/environment
-
 usage() {
     printf "\nUsage: larakit command\n"
     printf "\thelp\t\t\t\tShow this message.\n"
@@ -136,10 +133,12 @@ stackRunning() {
 }
 
 updateEnvironment() {
-    printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST}"
-    printf "PHP_VERSION=\"%s\"\n" "$1"
-    printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES}"
-    printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES}"
+    {
+        printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
+        printf "PHP_VERSION=\"%s\"\n" "${1:-7.2}"
+        printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx php-worker redis beanstalkd beanstalkd-console}"
+        printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-php-fpm php-worker laravel-horizon}"
+    } > "${LARAKIT_HOME}"/configs/environment
 }
 
 changePhpVersion() {
@@ -154,7 +153,7 @@ changePhpVersion() {
         ;;
     esac
 
-set -x
+    set -x
     cwd=$(pwd)
     cd ${LARADOCK_HOME}
 
@@ -162,7 +161,7 @@ set -x
         docker-compose ${COMPOSE_CONFIGS} down
     }
 
-    updateEnvironment $newVersion > "${LARAKIT_HOME}"/configs/environment
+    updateEnvironment $newVersion
 
     source "${LARAKIT_HOME}"/configs/environment
 
@@ -170,6 +169,12 @@ set -x
 
     cd "${cwd}"
 }
+
+# load environment overrides
+[ ! -f "${LARAKIT_HOME}"/configs/environment ] && {
+    updateEnvironment
+}
+source "${LARAKIT_HOME}"/configs/environment
 
 export APP_CODE_PATH_HOST PHP_VERSION
 
