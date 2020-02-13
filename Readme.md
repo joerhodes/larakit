@@ -48,7 +48,7 @@ This document outlines the steps for setting up a functioning development enviro
 
 1.	Use `larakit` as a replacement for `docker-compose`
 
-		[~/Sites/project] $ larakit run php73 composer update
+		[~/Sites/project] $ larakit exec composer update
 
 	[More information about **larakit**](larakit-commands.md)
 
