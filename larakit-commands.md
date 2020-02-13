@@ -13,13 +13,17 @@
 -	Copy custom config files to Laradock
 
     	larakit laradock config
+    	
+-	Switch active PHP version
+
+		larakit switch 7.4
 
 
 ## Docker (Laradock) stack commands
 
 -	Launch service stack
 
-		larakit up -d [service, ...]
+		larakit up [service...]
 
 -	Shutdown service stack
 
@@ -36,7 +40,7 @@
 
 ## Project Creation Commands
 
--	Create a new Laravel  PHP 7 project
+-	Create a new Laravel  PHP project
 
     	larakit exec|run composer create-project --prefer-dist laravel/laravel projectdir
 
