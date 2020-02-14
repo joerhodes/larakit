@@ -62,7 +62,7 @@ updateLaradock() {
     }
 
     cwd=$(pwd)
-    cd "${LARAKIT_HOME}"
+    cd "${LARADOCK_HOME}"
 
     git pull
 
@@ -137,7 +137,7 @@ updateEnvironment() {
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
         printf "PHP_VERSION=\"%s\"\n" "${1:-7.2}"
         printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx php-worker redis beanstalkd beanstalkd-console}"
-        printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-php-fpm php-worker laravel-horizon}"
+        printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm php-worker laravel-horizon}"
     } > "${LARAKIT_HOME}"/configs/environment
 }
 
@@ -153,7 +153,6 @@ changePhpVersion() {
         ;;
     esac
 
-    set -x
     cwd=$(pwd)
     cd ${LARADOCK_HOME}
 
@@ -162,8 +161,9 @@ changePhpVersion() {
     }
 
     updateEnvironment $newVersion
-
+set -x
     source "${LARAKIT_HOME}"/configs/environment
+    export APP_CODE_PATH_HOST PHP_VERSION
 
     docker-compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
 
