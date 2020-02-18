@@ -10,18 +10,18 @@ COMPOSE_CONFIGS='-f docker-compose.yml -f ../configs/docker-compose.override.yml
 
 usage() {
     printf "\nUsage: larakit command\n"
-    printf "\thelp\t\t\t\tShow this message.\n"
-    printf "\tlaradock install\t\tInstall Laradock.\n"
-    printf "\tlaradock pull\t\t\tPull down lastest Laradock updates.\n"
-    printf "\tlaradock config\t\t\tCopy custom config files to laradock.\n"
-    printf "\texec command [arg...]\t\tRun a command in the workspace container.\n"
-    printf "\trun service command [arg...]\tLaunch the service container and run the command.\n"
-    printf "\tup [service...]\t\t\tLaunch one or more services.\n"
-    printf "\tdown\t\t\t\tShutdown Laradock services.\n"
-    printf "\tps\t\t\t\tDisplay running containers.\n"
-    printf "\tlogs\t\t\t\tDisplay container logs.\n"
-    printf "\tswitch version\t\t\tSwitch containers to specified PHP version\n"
-    printf "\tnginx install\t\t\tCopy nginx config templates to current project\n"
+    printf "    help                    Show this message.\n"
+    printf "    laradock install        Install Laradock.\n"
+    printf "    laradock pull           Pull down lastest Laradock updates.\n"
+    printf "    laradock config         Copy custom config files to Laradock.\n"
+    printf "    exec command [arg...]   Run a command in the workspace container.\n"
+    printf "    run command [arg...]    Launch the workspace container and run the command.\n"
+    printf "    up [service...]         Launch one or more services.\n"
+    printf "    down                    Shutdown Laradock services.\n"
+    printf "    ps                      Display running containers.\n"
+    printf "    logs                    Display container logs.\n"
+    printf "    switch version          Switch containers to specified PHP version.\n"
+    printf "    nginx install           Copy nginx config templates to current project.\n"
     printf "\n"
     printf "Additional commands and options are passed directly to docker-compose.\n"
     printf "Run 'docker-compose help' for more information.\n"
@@ -171,6 +171,31 @@ changePhpVersion() {
     cd "${cwd}"
 }
 
+copyNginxTemplates() {
+    cp "${LARAKIT_HOME}"/templates/nginx.template.conf "${PROJECTDIR}"/nginx.template.conf
+    cp "${LARAKIT_HOME}"/templates/nginxconfig "${PROJECTDIR}"/nginxconfig
+    chmod u+x "${PROJECTDIR}"/nginxconfig
+
+    printf "nginx.template.conf created\n"
+    printf "nginxconfig created\n\n"
+    printf "Run ./nginxconfig to enable your project for nginx.\n"
+}
+
+nginxCommand() {
+    subCommand=$1
+    shift
+
+    case "${subCommand}" in
+        install)
+            copyNginxTemplates
+            ;;
+
+        *)
+            printf "\nUnknown larakit nginx command: %s\n" ${subCommand}
+            ;;
+    esac
+}
+
 # load environment overrides
 [ ! -f "${LARAKIT_HOME}"/configs/environment ] && {
     updateEnvironment
@@ -212,6 +237,10 @@ up)
 
 switch)
     changePhpVersion $*
+    ;;
+
+nginx)
+    nginxCommand $*
     ;;
 
 *)
