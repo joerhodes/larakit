@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+#
+# Create the nginx config file for the current environment
+#
+
+usage() {
+    printf "\nUsage: ./nginxconfig environment\n";
+    printf "\tenvironment\t{docker|dev|stage|prod}\n\n";
+    exit
+}
+
+if [ $# -ne 1 ]
+then
+    usage
+fi
+
+ENV=$1
+
+case "${ENV}" in
+    "docker")
+        SERVERNAME=
+        SSL=false
+        ;;
+
+    "dev")
+        SERVERNAME=
+        SSL=true
+        SSL_STUB=
+        ;;
+
+    "stage")
+        SERVERNAME=
+        SSL=true
+        SSL_STUB=
+        ;;
+
+     "prod")
+        SERVERNAME=
+        SSL=true
+        SSL_STUB=
+        ;;
+
+    *)
+        printf "\nInvalid environment!!\n"
+        usage
+        ;;
+esac
+
+PROJECTDIR=$( pwd )
+if [ ! -f ${PROJECTDIR}/nginxconfig ]
+then
+    echo "Must run nginxconfig from the project directory!"
+    exit 255
+fi
+
+PROJECT=$( basename ${PROJECTDIR} )
+PROJECTDIR="/var/www/${PROJECT}"
+
+if [ ! -f nginx.template.conf ]
+then
+    echo "Unable to find nginx.template.conf"
+    exit 255
+fi

@@ -21,6 +21,7 @@ usage() {
     printf "\tps\t\t\t\tDisplay running containers.\n"
     printf "\tlogs\t\t\t\tDisplay container logs.\n"
     printf "\tswitch version\t\t\tSwitch containers to specified PHP version\n"
+    printf "\tnginx install\t\t\tCopy nginx config templates to current project\n"
     printf "\n"
     printf "Additional commands and options are passed directly to docker-compose.\n"
     printf "Run 'docker-compose help' for more information.\n"
@@ -161,7 +162,7 @@ changePhpVersion() {
     }
 
     updateEnvironment $newVersion
-set -x
+
     source "${LARAKIT_HOME}"/configs/environment
     export APP_CODE_PATH_HOST PHP_VERSION
 
