@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+#
+# Create the nginx config file for the current environment
+#
+
+usage() {
+    printf "\nUsage: ./nginxconfig [environment]\n";
+    printf "\tenvironment\t{docker|dev|stage|prod}\n\n";
+    exit
+}
+
+# Look for .env to source variables from
+if [ ! -r ".env" ]; then
+    printf "Must run in a Laravel project with an .env file.\n"
+    exit
+fi
+
+source .env
+
+ENV=${APP_ENV}
+
+# If user overrides environment, use it
+[ $# -eq 1 ] && {
+    ENV=$1
+}
+
+# If environment is "local", make it "docker"
+if [ "$ENV" == "local" ]; then
+    ENV="docker"
+fi
+
+# Get domain from application's URL
+DOMAIN=$(basename ${APP_URL})
+
+case "${ENV}" in
+    "docker")
+        SERVERNAME=${DOMAIN}
+        SSL=false
+        ;;
+
+    "dev")
+        SERVERNAME=${DOMAIN}
+        SSL=true
+        SSL_STUB=
+        ;;
+
+    "stage")
+        SERVERNAME=${DOMAIN}
+        SSL=true
+        SSL_STUB=
+        ;;
+
+    "prod")
+        SERVERNAME=${DOMAIN}
+        SSL=true
+        SSL_STUB=
+        ;;
+
+    *)
+        printf "\nInvalid environment!!\n"
+        usage
+        ;;
+esac
+
+PROJECTDIR=$( pwd )
+if [ ! -f ${PROJECTDIR}/nginxconfig ]
+then
+    echo "Must run nginxconfig from the project directory!"
+    exit 255
+fi
+
+PROJECT=$( basename ${PROJECTDIR} )
+PROJECTDIR="/var/www/${PROJECT}"
+
+if [ ! -f nginx.template.conf ]
+then
+    echo "Unable to find nginx.template.conf"
+    exit 255
+fi
+
+# Replace values
+awkOption="
+    /%SERVERNAME%/ {
+        gsub(/%SERVERNAME%/, \"${SERVERNAME}\", \$0); print; next;
+    }
+
+    /%DOMAIN%/ {
+        gsub(/%DOMAIN%/, \"${DOMAIN}\", \$0); print; next;
+    }
+
+    /%PROJECTDIR%/ {
+        gsub(/%PROJECTDIR%/, \"${PROJECTDIR}\", \$0); print; next;
+    }
+
+    /%PROJECT%/ {
+        gsub(/%PROJECT%/, \"${PROJECT}\", \$0); print; next;
+    }
+
+    /%SSLSTUB%/ {
+        gsub(/%SSLSTUB%/, \"${SSLSTUB}\", \$0); print; next;
+    }
+
+    { print }
+"
+
+# If SSL is not enabled, remove the SSL block
+if [ $SSL == false ]; then
+    awkOption="
+        /%SSL%/,/%ENDSSL%/ {
+            gsub(/.*/, \"\", \$0); print; next;
+        }
+
+        $awkOption
+    "
+fi
+
+awk "$awkOption" nginx.template.conf > nginx.${ENV}.conf
+
+if [ $? -ne 0 ]
+then
+    printf "\nThere was an error generating nginx.%s.conf\n" ${ENV}
+else
+    printf "nginx.%s.conf generated.\n\n" ${ENV}
+    printf "Run 'larakit restart nginx' for nginx to take effect.\n"
+fi
