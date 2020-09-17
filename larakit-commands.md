@@ -8,7 +8,7 @@
 
 -	Pull latest Laradock update
 
-    	larakit laradock pull
+    	larakit laradock update
 
 -	Copy custom config files to Laradock
 

@@ -12,7 +12,7 @@ usage() {
     printf "\nUsage: larakit command\n"
     printf "    help                    Show this message.\n"
     printf "    laradock install        Install Laradock.\n"
-    printf "    laradock pull           Pull down lastest Laradock updates.\n"
+    printf "    laradock update         Pull down latest Laradock updates.\n"
     printf "    laradock config         Copy custom config files to Laradock.\n"
     printf "    exec command [arg...]   Run a command in the workspace container.\n"
     printf "    run command [arg...]    Launch the workspace container and run the command.\n"
@@ -80,7 +80,7 @@ laradockCommand() {
         copyConfigs
         ;;
 
-    pull)
+    update)
         updateLaradock
         copyConfigs
         ;;

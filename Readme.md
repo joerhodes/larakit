@@ -44,6 +44,10 @@ This document outlines the steps for setting up a functioning development enviro
 1.	Add the checkout location to your shell search path
 
 		export PATH=$PATH:~/Sites/larakit
+		
+1.	Install [Laradock](https://laradock.io)
+
+		larakit laradock install
 
 
 1.	Use `larakit` as a replacement for `docker-compose`
