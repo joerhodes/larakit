@@ -12,9 +12,13 @@ This document outlines the steps for setting up a functioning development enviro
 
 1.	Install [Docker for Mac](https://www.docker.com/docker-mac)
 
+1.  Increase Docker Resources
+
+    Open Docker icon on the *Apple menu bar*, click on *Preference*, open *Resources > Advanced*, set up CPU with 4 at least, Memory with 8.00 GB, then click on *Apply & Restart*. 
+
 1.	Disable Docker's Idle Network Connection Timeout
 
-	Add `"vpnKitPortMaxIdleTime": 0` to *~/Library/Group Containers/group.com.docker/settings.json*.
+	Add `"vpnKitPortMaxIdleTime": 0` to `~/Library/Group\ Containers/group.com.docker/settings.json`.
 	
         {
             "diskSizeMiB" : 61035,
