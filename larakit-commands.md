@@ -56,7 +56,7 @@
 		larakit exec|run composer update
 
 
--	Start a bash shell in the project so you will in the docker to avoid typing `larakt exec|run every time`
+-	Start a bash shell in the project so you will in the docker to avoid typing `larakt exec|run` every time
 
 		larakit exec|run bash
 
