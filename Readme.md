@@ -12,9 +12,13 @@ This document outlines the steps for setting up a functioning development enviro
 
 1.	Install [Docker for Mac](https://www.docker.com/docker-mac)
 
+1.  Increase Docker Resources
+
+    Open Docker icon on the *Apple menu bar*, click on *Preference*, open *Resources > Advanced*, set up CPU with 4 at least, Memory with 8.00 GB, then click on *Apply & Restart*. 
+
 1.	Disable Docker's Idle Network Connection Timeout
 
-	Add `"vpnKitPortMaxIdleTime": 0` to *~/Library/Group Containers/group.com.docker/settings.json*.
+	Add `"vpnKitPortMaxIdleTime": 0` to `~/Library/Group\ Containers/group.com.docker/settings.json`.
 	
         {
             "diskSizeMiB" : 61035,
@@ -48,12 +52,32 @@ This document outlines the steps for setting up a functioning development enviro
 1.	Install [Laradock](https://laradock.io)
 
 		larakit laradock install
+		
+1. You do *NOT* need to run `$larkit build` since it is built, please follow *Platform Setup* section below to set up the dedicated platforms you needed. Once all setup is down, you just need to run `$ larakit up`. See below *General Usage* section.
 
+----
+Platform Setup:
+1. LeadforcePro:
 
-1.	Use `larakit` as a replacement for `docker-compose`
+    Please follow [LeadForcePro Initial Deployment](https://bitbucket.org/fusemind/lfpro/src/master/docs/InitialDeployment.md)
 
-		[~/Sites/project] $ larakit exec composer update
+1. Leadforce 2:
+    1. Please follow [LeadForce 2](LeadForce2.md) to setup all LF2 dependencies such as YUI
+    1. Make sure any symbolic links under `~/Sites` are relatively path'd.
+        ```
+        $ cd ~/Sites
+        $ ls -l symfony
+        lrwxr-xr-x  1 jrhodes  staff  16 Sep  7 10:42 symfony -> /Users/jrhodes/Sites/Includes/symfony
+        $ rm symfony
+        $ ln -s Includes/symfony symfony
+        $ ls -l symfony
+        lrwxr-xr-x  1 jrhodes  staff  16 Sep  7 10:42 symfony -> Includes/symfony
+       ```
 
-	[More information about **larakit**](larakit-commands.md)
-
-1.	Set Up Dependencies for [LeadForce 2](LeadForce2.md)
+----
+General Usage (to replace devkit):
+1. Run docker: `$ larakit up`
+1. Shut down docker: `$ larakit down`
+1. Run bash in docker image: `$ larakit run bash`
+1. Update composer can be inside the docker with `$ composer update` or outside with `$ larakit run composer update`
+1. See more information about  [full list of **larakit** commands](larakit-commands.md)

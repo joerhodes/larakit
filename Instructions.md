@@ -48,23 +48,26 @@
 	        reach    : 0x00030002 (Reachable,Local Address,Directly Reachable Address)
 	
 1.	Test with ping:
-
-        $ ping -c 1 nohost.test
-        PING nohost.test (127.0.0.1): 56 data bytes
-        64 bytes from 127.0.0.1: icmp_seq=0 ttl=64 time=0.034 ms
+        ```
+        $ ping -c 1 admin.leadforcepro.lo
+        PING admin.leadforcepro.lo (127.0.0.1): 56 data bytes
+        64 bytes from 127.0.0.1: icmp_seq=0 ttl=64 time=0.031 ms
         
-        --- nohost.test ping statistics ---
+        --- admin.leadforcepro.lo ping statistics ---
         1 packets transmitted, 1 packets received, 0.0% packet loss
-        round-trip min/avg/max/stddev = 0.034/0.034/0.034/0.000 ms
+        round-trip min/avg/max/stddev = 0.031/0.031/0.031/0.000 ms
+        ```
+     
+        ```
+        $ ping -c 1 admin.leadforcepro.test
+        PING admin.leadforcepro.test (127.0.0.1): 56 data bytes
+        64 bytes from 127.0.0.1: icmp_seq=0 ttl=64 time=0.025 ms
         
-        $ ping -c 1 nohost.lo
-        PING nohost.lo (127.0.0.1): 56 data bytes
-        64 bytes from 127.0.0.1: icmp_seq=0 ttl=64 time=0.040 ms
-        
-        --- nohost.lo ping statistics ---
+        --- admin.leadforcepro.test ping statistics ---
         1 packets transmitted, 1 packets received, 0.0% packet loss
-        round-trip min/avg/max/stddev = 0.040/0.040/0.040/0.000 ms
-	
+        round-trip min/avg/max/stddev = 0.025/0.025/0.025/0.000 ms
+         ```
+      
 1.	Checkout [uber-common/docker-ssh-agent-forward](https://github.com/uber-common/docker-ssh-agent-forward.git) to a top level directory.
 
 1.	Build the ssh-agent containter.
@@ -72,23 +75,11 @@
 	    $ cd docker-ssh-agent-forward
 	    $ make
 	    $ sudo make install
+	    
+1.  Create directory `~/Sites/` if does not exist. All your website repository needs to be under this folder
 
-1.  Create directory `~/SitesHome/`  This directory is mapped to `/home` in the container.
+1.  Create directory `~/SitesHome/` if does not exist. This directory is mapped to `/home` in the container.
 
-1.  Create directory `~/SitesLogs/`  This is mapped to `/var/log/httpd` in the container.
+1.  Create directory `~/SitesLogs/` if does not exist. This is mapped to `/var/log/httpd` in the container.
 
-1.  Clean out all of the files under `~/Sites/sessions`.
-
-    	$ sudo rm ~/Sites/sessions/*/sess*
-
-1.  Make sure any symbolic links under `~/Sites` are relatively path'd.
-
-        $ cd ~/Sites
-        $ ls -l symfony
-        lrwxr-xr-x  1 jrhodes  staff  16 Sep  7 10:42 symfony -> /Users/jrhodes/Sites/Includes/symfony
-        $ rm symfony
-        $ ln -s Includes/symfony symfony
-        $ ls -l symfony
-        lrwxr-xr-x  1 jrhodes  staff  16 Sep  7 10:42 symfony -> Includes/symfony
-
-1.  Ensure directory `~/Sites/public` exists. This path is used by the PHP containers at the default path. If you have `~/Sites/html`, rename to `~/Sites/public`.
+1.  Create directory `~/Sites/sessions` if does not exist. If existed, please clean it up by running `$ sudo rm ~/Sites/sessions/*/sess*` 

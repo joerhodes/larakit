@@ -28,6 +28,10 @@
 -	Shutdown service stack
 
 		larakit down
+		
+-	Restart service stack
+
+		larakit restart
 
 -	List running services
 
@@ -52,7 +56,7 @@
 		larakit exec|run composer update
 
 
--	Start a bash shell in the project
+-	Start a bash shell in the project in Docker, so you can avoid typing `larakit exec|run` every time
 
 		larakit exec|run bash
 
