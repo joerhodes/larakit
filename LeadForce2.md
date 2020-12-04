@@ -1,6 +1,6 @@
 # LeadForce 2 Dependencies
 
-This document describe the process of installing the dependencies needed by the LeadForce 2 application.  These are system dependencies instead of project dependencies and thus need to be placed outside of the LeadForce 2 project directory.
+This document describes the process of installing the dependencies needed by the LeadForce 2 application.  These are system dependencies instead of project dependencies and thus need to be placed outside of the LeadForce 2 project directory.
 
 1.	Install and Update YUI
         ```
