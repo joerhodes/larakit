@@ -55,13 +55,14 @@ This document outlines the steps for setting up a functioning development enviro
 		
 1. You do *NOT* need to run `$larkit build` since it is built, please follow *Platform Setup* section below to set up the dedicated platforms you needed. Once all setup is down, you just need to run `$ larakit up`. See below *General Usage* section.
 
-----
-Platform Setup:
-1. LeadforcePro:
+## Platform Setup:
+
+1. LeadForce PRO:
 
     Please follow [LeadForcePro Initial Deployment](https://bitbucket.org/fusemind/lfpro/src/master/docs/InitialDeployment.md)
 
-1. Leadforce 2:
+1. LeadForce 2:
+
     1. Please follow [LeadForce 2](LeadForce2.md) to setup all LF2 dependencies such as YUI
     1. Make sure any symbolic links under `~/Sites` are relatively path'd.
         ```
@@ -72,12 +73,22 @@ Platform Setup:
         $ ln -s Includes/symfony symfony
         $ ls -l symfony
         lrwxr-xr-x  1 jrhodes  staff  16 Sep  7 10:42 symfony -> Includes/symfony
-       ```
+        ```
 
-----
-General Usage (to replace devkit):
+## General Usage (to replace devkit):
+
 1. Run docker: `$ larakit up`
 1. Shut down docker: `$ larakit down`
 1. Run bash in docker image: `$ larakit run bash`
 1. Update composer can be inside the docker with `$ composer update` or outside with `$ larakit run composer update`
 1. See more information about  [full list of **larakit** commands](larakit-commands.md)
+
+## Testing Database Server
+
+Our team use **Postgres.app** for local development databases. For testing with **PHPUnit**, you can provision a dedicated **test server** to achieve isolation from your main project databases. To do so:
+
+1. Open **Postgres.app** by clicking the program's logo on the top Menu Bar.
+1. On the left sidebar, click on the **+** button at the bottom.
+1. Specify your new server's **Name** (such as `Test Server`) and a different **Port** (such as `5433`), then click **Create Server**.
+
+If your project runs on Laravel, just edit the `.env.testing` file and set the `DB_PORT` key to the correct port (such as `5433`). Now you can run PHPUnit with this dedicated test server.

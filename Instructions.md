@@ -70,16 +70,16 @@
       
 1.	Checkout [uber-common/docker-ssh-agent-forward](https://github.com/uber-common/docker-ssh-agent-forward.git) to a top level directory.
 
-1.	Build the ssh-agent containter.
+1.	Build the ssh-agent container.
 
 	    $ cd docker-ssh-agent-forward
 	    $ make
 	    $ sudo make install
 	    
-1.  Create directory `~/Sites/` if does not exist. All your website repository needs to be under this folder
+1.  Create directory `~/Sites/` if does not exist. All your website repository needs to be under this folder.
 
 1.  Create directory `~/SitesHome/` if does not exist. This directory is mapped to `/home` in the container.
 
 1.  Create directory `~/SitesLogs/` if does not exist. This is mapped to `/var/log/httpd` in the container.
 
-1.  Create directory `~/Sites/sessions` if does not exist. If existed, please clean it up by running `$ sudo rm ~/Sites/sessions/*/sess*` 
+1.  Create directory `~/Sites/sessions` if does not exist. If existed, please clean it up by running `$ sudo rm ~/Sites/sessions/*/sess*`.
