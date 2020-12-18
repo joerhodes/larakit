@@ -139,7 +139,7 @@ updateEnvironment() {
         printf "WORKSPACE_INSTALL_LDAP=false\n"
         printf "PHP_VERSION=\"%s\"\n" "${1:-7.2}"
         printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx php-worker redis beanstalkd beanstalkd-console}"
-        printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm php-worker laravel-horizon}"
+        printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm}"
     } > "${LARAKIT_HOME}"/configs/environment
 }
 

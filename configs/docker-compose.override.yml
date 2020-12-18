@@ -8,3 +8,9 @@ services:
             - ~/.composer:/root/.composer
         environment:
             - SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+    php-fpm:
+        volumes:
+            - ~/SitesHome:/home
+    php-worker:
+        volumes:
+            - ~/SitesHome:/home
