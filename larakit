@@ -137,6 +137,7 @@ updateEnvironment() {
     {
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
         printf "WORKSPACE_INSTALL_LDAP=false\n"
+        printf "PHP_FPM_INSTALL_IMAGEMAGICK=false\n"
         printf "PHP_VERSION=\"%s\"\n" "${1:-7.2}"
         printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx redis }"
         printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm}"
@@ -165,7 +166,7 @@ changePhpVersion() {
     updateEnvironment $newVersion
 
     source "${LARAKIT_HOME}"/configs/environment
-    export APP_CODE_PATH_HOST PHP_VERSION WORKSPACE_INSTALL_LDAP
+    export APP_CODE_PATH_HOST PHP_VERSION WORKSPACE_INSTALL_LDAP PHP_FPM_INSTALL_IMAGEMAGICK
 
     docker-compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
 
