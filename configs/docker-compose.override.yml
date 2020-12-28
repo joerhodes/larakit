@@ -4,13 +4,13 @@ services:
     workspace:
         volumes:
             - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
-            - ~/SitesHome:/home
+            - ~/SitesHome:/home2
             - ~/.composer:/root/.composer
         environment:
             - SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
     php-fpm:
         volumes:
-            - ~/SitesHome:/home
+            - ~/SitesHome:/home2
     php-worker:
         volumes:
-            - ~/SitesHome:/home
+            - ~/SitesHome:/home2
