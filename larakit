@@ -3,7 +3,7 @@
 # larakit configuration
 PROJECTDIR=$(pwd)
 PROJECT=$(basename "${PROJECTDIR}")
-SITESDIR=$(dirname "${PROJECTDIR}")
+SITESDIR="${HOME}/Sites"
 LARAKIT_HOME=$(dirname "${BASH_SOURCE[0]}")
 LARADOCK_HOME="${LARAKIT_HOME}/laradock"
 COMPOSE_CONFIGS='-f docker-compose.yml -f ../configs/docker-compose.override.yml'
@@ -95,24 +95,28 @@ laradockCommand() {
     esac
 }
 
+setWorkingDirectory() {
+    siteslen=${#SITESDIR}
+    WORKINGDIR='/var/www'
+    CURRENTDIR=$(pwd)
+    if [ ${SITESDIR} = "${CURRENTDIR:0:${siteslen}}" ]; then
+        pos=$((${#SITESDIR} + 1))
+        WORKINGDIR=${WORKINGDIR}/${CURRENTDIR:$pos}
+    fi
+
+    printf "Working directory will be %s\n" "${WORKINGDIR}"
+}
+
 runService() {
     loadSshKeys
 
-    [ "${SITESDIR}" != "${HOME}/Sites" ] && {
-        printf "Working directory will be /var/www\n"
-        PROJECT=''
-    }
+    setWorkingDirectory
 
     cd "${LARADOCK_HOME}"
-    docker-compose ${COMPOSE_CONFIGS} run --rm -w /var/www/"${PROJECT}" $*
+    docker-compose ${COMPOSE_CONFIGS} run --rm -w "${WORKINGDIR}" $*
 }
 
 execService() {
-    [ "${SITESDIR}" != "${HOME}/Sites" ] && {
-        printf "Working directory will be /var/www\n"
-        PROJECT=''
-    }
-
     MEMORY_LIMIT=''
     [ "$1" = 'composer' ] && {
         MEMORY_LIMIT='-e COMPOSER_MEMORY_LIMIT=-1'
@@ -124,7 +128,9 @@ execService() {
         exit
     }
 
-    docker exec -it -w /var/www/"${PROJECT}" ${MEMORY_LIMIT} ${container} $*
+    setWorkingDirectory
+
+    docker exec -it -w "${WORKINGDIR}" ${MEMORY_LIMIT} ${container} $*
 }
 
 stackRunning() {
@@ -188,13 +194,13 @@ nginxCommand() {
     shift
 
     case "${subCommand}" in
-        install)
-            copyNginxTemplates
-            ;;
+    install)
+        copyNginxTemplates
+        ;;
 
-        *)
-            printf "\nUnknown larakit nginx command: %s\n" ${subCommand}
-            ;;
+    *)
+        printf "\nUnknown larakit nginx command: %s\n" ${subCommand}
+        ;;
     esac
 }
 
@@ -206,7 +212,7 @@ source "${LARAKIT_HOME}"/configs/environment
 
 export APP_CODE_PATH_HOST PHP_VERSION
 
-workingDir=$(pwd)
+currentworkingDir=$(pwd)
 command=$1
 shift
 
@@ -251,4 +257,4 @@ nginx)
     ;;
 esac
 
-cd "${workingDir}"
+cd "${currentworkingDir}"
