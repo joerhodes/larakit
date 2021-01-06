@@ -14,7 +14,7 @@ usage() {
     printf "    laradock install        Install Laradock.\n"
     printf "    laradock update         Pull down latest Laradock updates.\n"
     printf "    laradock config         Copy custom config files to Laradock.\n"
-    printf "    env                     Show the values used for the last container build process\n"
+    printf "    env                     Show the values used for the last container build process.\n"
     printf "    exec command [arg...]   Run a command in the workspace container.\n"
     printf "    run command [arg...]    Launch the workspace container and run the command.\n"
     printf "    up [service...]         Launch one or more services.\n"
