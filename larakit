@@ -14,13 +14,14 @@ usage() {
     printf "    laradock install        Install Laradock.\n"
     printf "    laradock update         Pull down latest Laradock updates.\n"
     printf "    laradock config         Copy custom config files to Laradock.\n"
+    printf "    env                     Show the values used for the last container build process\n"
     printf "    exec command [arg...]   Run a command in the workspace container.\n"
     printf "    run command [arg...]    Launch the workspace container and run the command.\n"
     printf "    up [service...]         Launch one or more services.\n"
     printf "    down                    Shutdown Laradock services.\n"
     printf "    ps                      Display running containers.\n"
     printf "    logs                    Display container logs.\n"
-    printf "    switch version          Switch containers to specified PHP version.\n"
+    printf "    switch version          Switch to PHP version: 5.6, 7.2, 7.3, 7.4 or 8.0.\n"
     printf "    nginx install           Copy nginx config templates to current project.\n"
     printf "\n"
     printf "Additional commands and options are passed directly to docker-compose.\n"
@@ -141,20 +142,32 @@ stackRunning() {
 
 updateEnvironment() {
     {
+        INSTALL_IMAGEMAGICK=true
+        if [ "${1:-7.2}" = "8.0" ]; then
+            INSTALL_IMAGEMAGICK=false
+        fi
+
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
+        printf "WORKSPACE_INSTALL_AST=false\n"
         printf "WORKSPACE_INSTALL_LDAP=false\n"
-        printf "PHP_FPM_INSTALL_IMAGEMAGICK=false\n"
+        printf "WORKSPACE_INSTALL_IMAGEMAGICK=%s\n" ${INSTALL_IMAGEMAGICK}
+        printf "PHP_FPM_INSTALL_AST=false\n"
+        printf "PHP_FPM_INSTALL_IMAGEMAGICK=%s\n" ${INSTALL_IMAGEMAGICK}
         printf "PHP_VERSION=\"%s\"\n" "${1:-7.2}"
         printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx redis }"
         printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm}"
     } > "${LARAKIT_HOME}"/configs/environment
 }
 
+showEnvironment() {
+    cat "${LARAKIT_HOME}"/configs/environment
+}
+
 changePhpVersion() {
     newVersion=$1
 
     case "${newVersion}" in
-    5.6 | 7.2 | 7.3 | 7.4) ;;
+    5.6 | 7.2 | 7.3 | 7.4 | 8.0) ;;
 
     *)
         printf "Invalid PHP version!  Use of one 7.2, 7.3, 7.4 or 5.6 (if desperate)\n"
@@ -172,7 +185,9 @@ changePhpVersion() {
     updateEnvironment $newVersion
 
     source "${LARAKIT_HOME}"/configs/environment
-    export APP_CODE_PATH_HOST PHP_VERSION WORKSPACE_INSTALL_LDAP PHP_FPM_INSTALL_IMAGEMAGICK
+    export APP_CODE_PATH_HOST PHP_VERSION
+    export WORKSPACE_INSTALL_AST WORKSPACE_INSTALL_LDAP
+    export PHP_FPM_INSTALL_AST PHP_FPM_INSTALL_IMAGEMAGICK
 
     docker-compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
 
@@ -223,6 +238,10 @@ help)
 
 laradock)
     laradockCommand $*
+    ;;
+
+env)
+    showEnvironment
     ;;
 
 exec)
