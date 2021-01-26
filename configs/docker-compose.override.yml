@@ -6,6 +6,7 @@ services:
             - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
             - ~/SitesHome:/home2
             - ~/.composer:/root/.composer
+            - ~/.gnupg:/root/.gnupg
         environment:
             - SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
     php-fpm:
