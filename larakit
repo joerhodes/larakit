@@ -43,6 +43,25 @@ copyConfigs() {
     cp "${LARAKIT_HOME}"/configs/nginx-sites.conf "${LARADOCK_HOME}"/nginx/sites/projects.conf
 }
 
+updateWorkspace() {
+    mv ${LARADOCK_HOME}/workspace/Dockerfile ${LARADOCK_HOME}/workspace/Dockerfile.bak
+
+    awk 'BEGIN { nearEnd=0; }
+        /Final Touch/ { nearEnd=1; }
+        {
+            if (!nearEnd || ($0 !~ /USER root/)) {
+                print;
+            } else {
+                print;
+                print "RUN apt-get install -y p7zip-full";
+            }
+        }' \
+        ${LARADOCK_HOME}/workspace/Dockerfile.bak \
+        > ${LARADOCK_HOME}/workspace/Dockerfile
+
+    rm ${LARADOCK_HOME}/workspace/Dockerfile.bak
+}
+
 installLaradock() {
     [ -d "${LARADOCK_HOME}" ] && {
         printf "Laradock appears to be installed.  Try update instead!\n"
@@ -66,6 +85,7 @@ updateLaradock() {
     cwd=$(pwd)
     cd "${LARADOCK_HOME}"
 
+    git checkout -- .
     git pull
 
     cd "${cwd}"
@@ -79,11 +99,17 @@ laradockCommand() {
     install)
         installLaradock
         copyConfigs
+        updateWorkspace
         ;;
 
     update)
         updateLaradock
         copyConfigs
+        updateWorkspace
+        ;;
+
+    updateWorkspace)
+        updateWorkspace
         ;;
 
     config)
