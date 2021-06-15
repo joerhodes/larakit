@@ -39,7 +39,7 @@ loadSshKeys() {
 }
 
 copyConfigs() {
-    cp "${LARADOCK_HOME}"/env-example "${LARADOCK_HOME}"/.env
+    cp "${LARADOCK_HOME}"/.env.example "${LARADOCK_HOME}"/.env
     cp "${LARAKIT_HOME}"/configs/nginx-sites.conf "${LARADOCK_HOME}"/nginx/sites/projects.conf
 }
 
