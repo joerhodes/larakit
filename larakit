@@ -34,6 +34,7 @@ loadSshKeys() {
     keys=$(ssh-add -L)
     [ -n "${keys}" ] || {
         printf "\nLoading SSH Keys for SSH Agent\n"
+        # @todo This will need to use the --apple-load-keychain once everyone is on macOS 12kl
         ssh-add -K
     }
 }
