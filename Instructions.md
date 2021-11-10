@@ -10,7 +10,7 @@
 
 	    $ brew install dnsmasq
 
-1.	Add the following lines to `/opt/homebrew/etc/dnsmasq.conf`.  If this file does not exists, try this path `/usr/local/etc/dnsmasq.conf`.  
+1.	Add the following lines to `/opt/homebrew/etc/dnsmasq.conf`.  If this file does not exist, try this path `/usr/local/etc/dnsmasq.conf`.  
 
 	    address=/.test/127.0.0.1
 	    address=/.lo/127.0.0.1
