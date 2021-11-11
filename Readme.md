@@ -55,6 +55,7 @@ This document outlines the steps for setting up a functioning development enviro
 1. Shut down docker: `larakit down`
 1. Run bash in docker image: `larakit run bash`
 1. Update composer can be inside the docker with `composer update` or outside with `larakit run composer update`
+1. Add project host names `larakit register project.test`
 1. See more information about  [full list of **larakit** commands](larakit-commands.md)
 
 ## Testing Database Server

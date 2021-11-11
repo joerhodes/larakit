@@ -69,6 +69,40 @@
 -	Run NPM
 
 		larakit exec|run npm ...
-		
 
+		
+## Register hostname aliases for NGINX
+
+To allow apps to talk to each other inside of the docker containers, the application hostnames need to mapped to the NGINX container.  This is done by assigning network aliases to the NGINX container.  The following commands all these aliases to be managed.
+
+-	Add an alias
+	
+		larakit register api.test
+
+-	Remove an alias
+	
+		larakit deregister api.test
+
+-	Add an alias for the current project
+	
+		cd ~/Sites/ddgorder
+		larakit register
+
+-	Remove an alias for the current project
+	
+		cd ~/Sites/ddgorder
+		larakit deregister
+
+-	Add aliases for all projects
+
+		larakit register all
+		
+-	Remove aliases for all projects
+
+		larakit deregister all
+
+The larakit stack will need to be restarted after this commands for the aliases to take effect.
+
+	larakit down
+	larakit up
 
