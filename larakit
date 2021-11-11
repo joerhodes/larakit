@@ -277,36 +277,52 @@ checkDependencies() {
     }
 }
 
-registerHostname() {
-    hostnames=$(yq e '.services.nginx.networks.backend.aliases[]' $COMPOSE_OVERRIDES)
-    [ "$hostnames" = 'null' ] && {
-        hostnames='[]'
+getNginxAliases() {
+    aliases=$(yq e '.services.nginx.networks.backend.aliases[]' $COMPOSE_OVERRIDES)
+    [ "$aliases" = 'null' ] && {
+        aliases=''
     }
-
-    [ "$hostnames" != '[]' ] && {
-        hostnames=$(echo \[$hostnames\] | tr "\n " ',')
-    }
-
-    hostnames=$(echo $hostnames | newname=$1 yq e '. += env(newname)' - 2>/dev/null)
-    hostnames=$(echo $hostnames | yq e 'unique' -)
-
-    errors=$(hostnames=$hostnames yq e -iP '.services.nginx.networks.backend.aliases = env(hostnames)' $COMPOSE_OVERRIDES)
+    
+    echo $aliases
 }
 
-deregisterHostname() {
-    hostnames=$(yq e '.services.nginx.networks.backend.aliases[]' $COMPOSE_OVERRIDES | grep -v "$1")
-    [ "$hostnames" = 'null' ] && {
+registerHostnames() {
+    aliases=$(getNginxAliases)
+
+    aliases=$(echo \[$aliases\] | tr "\n " ',')
+    while [ $# -gt 0 ]; do
+        newhost=$1
+        aliases=$(echo $aliases | newname=$1 yq e '. += env(newname)' - 2>/dev/null)
+        shift
+    done
+    aliases=$(echo $aliases | yq e 'unique' - | sort)
+
+    errors=$(aliases=$aliases yq e -iP '.services.nginx.networks.backend.aliases = env(aliases)' $COMPOSE_OVERRIDES)
+}
+
+deregisterHostnames() {
+    aliases=$(getNginxAliases)
+    [ "$aliases" = 'null' ] && {
         # nothing to do
-        exit
+        return
     }
 
-    [ "$hostnames" != '[]' ] && {
-        hostnames=$(echo \[$hostnames\] | tr "\n " ',')
-    }
-    hostnames=$(echo $hostnames | yq e 'unique' - 2>/dev/null)
+    while [ $# -gt 0 ]; do
+        hostname=$1
+        aliases=$(echo $aliases | sed "s/$hostname//")
+        shift
+    done
+    aliases=$(echo $aliases | tr "\n " ',')
+    aliases=$(echo \[$aliases\] | yq e 'unique' - 2>/dev/null)
 
-    errors=$(hostnames=$hostnames yq e -iP '.services.nginx.networks.backend.aliases = env(hostnames)' $COMPOSE_OVERRIDES)
+    [ "$aliases" = '' ] && {
+        aliases='[]'
+    }
+
+    errors=$(newaliases="$aliases" yq e -iP '.services.nginx.networks.backend.aliases = env(newaliases)' $COMPOSE_OVERRIDES)
 }
+
+
 
 checkDependencies
 
@@ -362,11 +378,13 @@ nginx)
     ;;
 
 register)
-    registerHostname $*
+    echo "Parms: $#"
+    exit
+    registerHostnames $*
     ;;
 
 deregister)
-    deregisterHostname $*
+    deregisterHostnames $*
     ;;
 
 *)
