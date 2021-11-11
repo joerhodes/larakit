@@ -277,6 +277,52 @@ checkDependencies() {
     }
 }
 
+loadProjectHostname() {
+    VHOST_NAME=''
+
+    [ -f .env ] && {
+        source .env
+
+        [ "$VHOST_NAME" = '' -a "$APP_URL" != '' ] && {
+            HOSTNAME=$(echo $APP_URL | awk -F/ '{print $3}')
+            TLD=$(echo $HOSTNAME | awk -F. '{print $(NF)}')
+
+            [ "$TLD" != '' ] && {
+                [ "$TLD" = 'lo' -o "$TLD" = 'test' ] && {
+                    VHOST_NAME=$HOSTNAME
+                }
+            }
+        }
+    }
+
+    echo $VHOST_NAME
+}
+
+loadAllProjectHostnames() {
+    projecthosts=''
+    cwd=$(pwd)
+
+    cd "$SITESDIR"
+    for dir in *
+    do
+        [ "$dir" = '.' -o "$dir" = '..' -o ! -d "$dir" ] && {
+            continue
+        }
+
+        cd "$dir"
+
+        hostname=$(loadProjectHostname)
+        [ -n "$hostname" ] && {
+            projecthosts="$projecthosts $hostname"
+        }
+
+        cd "$SITESDIR"
+    done
+
+    cd $cwd
+    echo $projecthosts
+}
+
 getNginxAliases() {
     aliases=$(yq e '.services.nginx.networks.backend.aliases[]' $COMPOSE_OVERRIDES)
     [ "$aliases" = 'null' ] && {
@@ -287,6 +333,10 @@ getNginxAliases() {
 }
 
 registerHostnames() {
+    [ $# -eq 0 ] && {
+        return
+    }
+
     aliases=$(getNginxAliases)
 
     aliases=$(echo \[$aliases\] | tr "\n " ',')
@@ -301,6 +351,10 @@ registerHostnames() {
 }
 
 deregisterHostnames() {
+    [ $# -eq 0 ] && {
+        return
+    }
+
     aliases=$(getNginxAliases)
     [ "$aliases" = 'null' ] && {
         # nothing to do
@@ -378,15 +432,42 @@ nginx)
     ;;
 
 register)
-    echo "Parms: $#"
-    exit
-    registerHostnames $*
+    case $# in
+    0)
+        hostnames=$(loadProjectHostname)
+        ;;
+    *)
+        hostnames="$*"
+        [ "$hostnames" = 'all' ] && {
+            hostnames=$(loadAllProjectHostnames)
+        }
+        ;;
+    esac
+    [ -n "$hostnames" ] && {
+        registerHostnames $hostnames
+    }
     ;;
 
 deregister)
-    deregisterHostnames $*
+    case $# in
+    0)
+        hostnames=$(loadProjectHostname)
+        ;;
+    *)
+        hostnames="$*"
+        [ "$hostnames" = 'all' ] && {
+            hostnames=$(loadAllProjectHostnames)
+        }
+        ;;
+    esac
+    [ -n "$hostnames" ] && {
+        deregisterHostnames $hostnames
+    }
     ;;
 
+allprojectnames)
+    echo "'$(loadAllProjectHostnames)'"
+    ;;
 *)
     cd "${LARADOCK_HOME}"
     docker-compose ${COMPOSE_CONFIGS} $command $*
