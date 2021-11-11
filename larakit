@@ -6,7 +6,9 @@ PROJECT=$(basename "${PROJECTDIR}")
 SITESDIR="${HOME}/Sites"
 LARAKIT_HOME=$(dirname "${BASH_SOURCE[0]}")
 LARADOCK_HOME="${LARAKIT_HOME}/laradock"
-COMPOSE_CONFIGS='-f docker-compose.yml -f ../configs/docker-compose.override.yml'
+COMPOSE_OVERRIDES="${LARAKIT_HOME}/configs/docker-compose.override.yml"
+COMPOSE_ALIASES="${LARAKIT_HOME}/configs/docker-compose.aliases.yml"
+COMPOSE_CONFIGS="-f docker-compose.yml -f ${COMPOSE_OVERRIDES} -f ${COMPOSE_ALIASES}"
 
 usage() {
     printf "\nUsage: larakit command\n"
@@ -252,6 +254,134 @@ nginxCommand() {
     esac
 }
 
+checkDependencies() {
+    path=$(which brew)
+    [ $? -ne 0 ] && {
+        printf "\nUnable to find brew command!  Make sure Homebrew (https://brew.sh) is installed!\n"
+        exit
+    }
+
+    path=$(which dnsmasq)
+    [ $? -ne 0 ] && {
+        printf "\ndnsmasq is not installed!  Follow Larakit Instructions.md to complete installation!\n"
+        exit
+    }
+
+    path=$(which yq)
+    [ $? -ne 0 ] && {
+        printf "\nInstalling dependencies 'yq'...\n"
+        brew install yq
+        [ $? -ne 0 ] && {
+            printf "\nInstallation failed!  Run: 'brew install yq' to resolve issues.\n"
+            exit
+        }
+    }
+}
+
+loadProjectHostname() {
+    VHOST_NAME=''
+
+    [ -f .env ] && {
+        source .env
+
+        [ "$VHOST_NAME" = '' -a "$APP_URL" != '' ] && {
+            HOSTNAME=$(echo $APP_URL | awk -F/ '{print $3}')
+            TLD=$(echo $HOSTNAME | awk -F. '{print $(NF)}')
+
+            [ "$TLD" != '' ] && {
+                [ "$TLD" = 'lo' -o "$TLD" = 'test' ] && {
+                    VHOST_NAME=$HOSTNAME
+                }
+            }
+        }
+    }
+
+    echo $VHOST_NAME
+}
+
+loadAllProjectHostnames() {
+    projecthosts=''
+    cwd=$(pwd)
+
+    for file in $(find "$SITESDIR" -type f -name .env)
+    do
+        [[ $file == *"larakit"* ]] && {
+            continue
+        }
+
+        cd $(dirname "$file")
+
+        hostname=$(loadProjectHostname)
+        [ -n "$hostname" ] && {
+            projecthosts="$projecthosts $hostname"
+        }
+    done
+
+    cd $cwd
+    echo $projecthosts
+}
+
+getNginxAliases() {
+    [ ! -f "$COMPOSE_ALIASES" ] && {
+        touch "$COMPOSE_ALIASES"
+    }
+
+    aliases=$(yq e '.services.nginx.networks.backend.aliases[]' "$COMPOSE_ALIASES")
+    [ "$aliases" = 'null' ] && {
+        aliases=''
+    }
+    
+    echo $aliases
+}
+
+registerHostnames() {
+    [ $# -eq 0 ] && {
+        return
+    }
+
+    aliases=$(getNginxAliases)
+
+    aliases=$(echo \[$aliases\] | tr "\n " ',')
+    while [ $# -gt 0 ]; do
+        newhost=$1
+        aliases=$(echo $aliases | newname=$1 yq e '. += env(newname)' - 2>/dev/null)
+        shift
+    done
+    aliases=$(echo $aliases | yq e 'unique' - | sort)
+
+    errors=$(aliases=$aliases yq e -iP '.services.nginx.networks.backend.aliases = env(aliases)' "$COMPOSE_ALIASES")
+}
+
+deregisterHostnames() {
+    [ $# -eq 0 ] && {
+        return
+    }
+
+    aliases=$(getNginxAliases)
+    [ "$aliases" = 'null' ] && {
+        # nothing to do
+        return
+    }
+
+    while [ $# -gt 0 ]; do
+        hostname=$1
+        aliases=$(echo $aliases | sed "s/$hostname//")
+        shift
+    done
+    aliases=$(echo $aliases | tr "\n " ',')
+    aliases=$(echo \[$aliases\] | yq e 'unique' - 2>/dev/null)
+
+    [ "$aliases" = '' ] && {
+        aliases='[]'
+    }
+
+    errors=$(newaliases="$aliases" yq e -iP '.services.nginx.networks.backend.aliases = env(newaliases)' "$COMPOSE_ALIASES")
+}
+
+
+
+checkDependencies
+
 # load environment overrides
 [ ! -f "${LARAKIT_HOME}"/configs/environment ] && {
     updateEnvironment
@@ -301,6 +431,40 @@ switch)
 
 nginx)
     nginxCommand $*
+    ;;
+
+register)
+    case $# in
+    0)
+        hostnames=$(loadProjectHostname)
+        ;;
+    *)
+        hostnames="$*"
+        [ "$hostnames" = 'all' ] && {
+            hostnames=$(loadAllProjectHostnames)
+        }
+        ;;
+    esac
+    [ -n "$hostnames" ] && {
+        registerHostnames $hostnames
+    }
+    ;;
+
+deregister)
+    case $# in
+    0)
+        hostnames=$(loadProjectHostname)
+        ;;
+    *)
+        hostnames="$*"
+        [ "$hostnames" = 'all' ] && {
+            hostnames=$(loadAllProjectHostnames)
+        }
+        ;;
+    esac
+    [ -n "$hostnames" ] && {
+        deregisterHostnames $hostnames
+    }
     ;;
 
 *)

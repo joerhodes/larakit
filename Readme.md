@@ -1,6 +1,6 @@
 # Welcome
 
-This document outlines the steps for setting up a functioning development environment for **macOS Catalina**.  This document is written for a fresh, clean install of **Catalina**.  If your system is not on **Catalina**, go upgrade.  If your system is not a clean install, some of the following steps may be unnecessary or may conflict with existing software.  It is your responsibility to solve and document these cases.
+This document outlines the steps for setting up a functioning development environment for **macOS Big Sur**.  This document is written for a fresh, clean install of **Big Sur**.  If your system is not on **Big Sur**, go upgrade.  If your system is not a clean install, some of the following steps may be unnecessary or may conflict with existing software.  It is your responsibility to solve and document these cases.
 
 ## Basics
 
@@ -36,7 +36,7 @@ This document outlines the steps for setting up a functioning development enviro
 
 		larakit laradock install
 		
-1. You do *NOT* need to run `$larkit build` since it is built, please follow *Platform Setup* section below to set up the dedicated platforms you needed. Once all setup is down, you just need to run `$ larakit up`. See below *General Usage* section.
+1. You do *NOT* need to run `larkit build` since it is built, please follow *Platform Setup* section below to set up the dedicated platforms you needed. Once all setup is done, you just need to run `larakit up`. See below *General Usage* section.
 
 ## Platform Setup:
 
@@ -46,24 +46,16 @@ This document outlines the steps for setting up a functioning development enviro
 
 1. LeadForce 2:
 
-    1. Please follow [LeadForce 2](LeadForce2.md) to setup all LF2 dependencies such as YUI
-    1. Make sure any symbolic links under `~/Sites` are relatively path'd.
-        ```
-        $ cd ~/Sites
-        $ ls -l symfony
-        lrwxr-xr-x  1 jrhodes  staff  16 Sep  7 10:42 symfony -> /Users/jrhodes/Sites/Includes/symfony
-        $ rm symfony
-        $ ln -s Includes/symfony symfony
-        $ ls -l symfony
-        lrwxr-xr-x  1 jrhodes  staff  16 Sep  7 10:42 symfony -> Includes/symfony
-        ```
+    Please follow [LeadForce 2](LeadForce2.md) to setup all LF2 dependencies such as YUI
+        
 
 ## General Usage (to replace devkit):
 
-1. Run docker: `$ larakit up`
-1. Shut down docker: `$ larakit down`
-1. Run bash in docker image: `$ larakit run bash`
-1. Update composer can be inside the docker with `$ composer update` or outside with `$ larakit run composer update`
+1. Run docker: `larakit up`
+1. Shut down docker: `larakit down`
+1. Run bash in docker image: `larakit run bash`
+1. Update composer can be inside the docker with `composer update` or outside with `larakit run composer update`
+1. Add project host names `larakit register project.test`
 1. See more information about  [full list of **larakit** commands](larakit-commands.md)
 
 ## Testing Database Server
