@@ -302,21 +302,18 @@ loadAllProjectHostnames() {
     projecthosts=''
     cwd=$(pwd)
 
-    cd "$SITESDIR"
-    for dir in *
+    for file in $(find "$SITESDIR" -type f -name .env)
     do
-        [ "$dir" = '.' -o "$dir" = '..' -o ! -d "$dir" ] && {
+        [[ $file == *"larakit"* ]] && {
             continue
         }
 
-        cd "$dir"
+        cd $(dirname "$file")
 
         hostname=$(loadProjectHostname)
         [ -n "$hostname" ] && {
             projecthosts="$projecthosts $hostname"
         }
-
-        cd "$SITESDIR"
     done
 
     cd $cwd
