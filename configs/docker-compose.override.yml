@@ -1,17 +1,16 @@
-version: '3'
-
+version: "3"
 services:
-    workspace:
-        volumes:
-            - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
-            - ~/SitesHome:/home2
-            - ~/.composer:/root/.composer
-            - ~/.gnupg:/root/.gnupg
-        environment:
-            - SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
-    php-fpm:
-        volumes:
-            - ~/SitesHome:/home2
-    php-worker:
-        volumes:
-            - ~/SitesHome:/home2
+  workspace:
+    volumes:
+      - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
+      - ~/SitesHome:/home2
+      - ~/.composer:/root/.composer
+      - ~/.gnupg:/root/.gnupg
+    environment:
+      - SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+  php-fpm:
+    volumes:
+      - ~/SitesHome:/home2
+  php-worker:
+    volumes:
+      - ~/SitesHome:/home2
