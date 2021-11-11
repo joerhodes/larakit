@@ -287,14 +287,13 @@ registerHostname() {
         hostnames=$(echo \[$hostnames\] | tr "\n " ',')
     }
 
-    hostnames=$(echo $hostnames | newname=$1 yq e '. += env(newname)' -)
+    hostnames=$(echo $hostnames | newname=$1 yq e '. += env(newname)' - 2>/dev/null)
     hostnames=$(echo $hostnames | yq e 'unique' -)
 
     errors=$(hostnames=$hostnames yq e -iP '.services.nginx.networks.backend.aliases = env(hostnames)' $COMPOSE_OVERRIDES)
 }
 
 deregisterHostname() {
-    set -x
     hostnames=$(yq e '.services.nginx.networks.backend.aliases[]' $COMPOSE_OVERRIDES | grep -v "$1")
     [ "$hostnames" = 'null' ] && {
         # nothing to do
@@ -304,10 +303,9 @@ deregisterHostname() {
     [ "$hostnames" != '[]' ] && {
         hostnames=$(echo \[$hostnames\] | tr "\n " ',')
     }
-    hostnames=$(echo $hostnames | yq e 'unique' -)
+    hostnames=$(echo $hostnames | yq e 'unique' - 2>/dev/null)
 
     errors=$(hostnames=$hostnames yq e -iP '.services.nginx.networks.backend.aliases = env(hostnames)' $COMPOSE_OVERRIDES)
-    set +x
 }
 
 checkDependencies
