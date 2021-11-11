@@ -257,7 +257,7 @@ nginxCommand() {
 checkDependencies() {
     path=$(which brew)
     [ $? -ne 0 ] && {
-        printf "\nUnable to find brew command!  Make sure Homebrew (https://brew.sh) is install!\n"
+        printf "\nUnable to find brew command!  Make sure Homebrew (https://brew.sh) is installed!\n"
         exit
     }
 
