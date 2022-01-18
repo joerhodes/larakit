@@ -143,7 +143,7 @@ runService() {
     setWorkingDirectory
 
     cd "${LARADOCK_HOME}"
-    docker-compose ${COMPOSE_CONFIGS} run --rm -w "${WORKINGDIR}" $*
+    docker compose ${COMPOSE_CONFIGS} run --rm -w "${WORKINGDIR}" $*
 }
 
 execService() {
@@ -172,20 +172,16 @@ stackRunning() {
 updateEnvironment() {
     {
         INSTALL_IMAGEMAGICK=true
-        case "${1:-7.2}" in
-            7.4|8.0)
-                INSTALL_IMAGEMAGICK=false
-                ;;
-        esac
 
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
         printf "WORKSPACE_INSTALL_AST=false\n"
         printf "WORKSPACE_INSTALL_IMAGEMAGICK=%s\n" ${INSTALL_IMAGEMAGICK}
         printf "WORKSPACE_INSTALL_LDAP=true\n"
         printf "WORKSPACE_INSTALL_SOAP=true\n"
+        printf "WORKSPACE_INSTALL_SSHPASS=true\n"
         printf "PHP_FPM_INSTALL_AST=false\n"
         printf "PHP_FPM_INSTALL_IMAGEMAGICK=%s\n" ${INSTALL_IMAGEMAGICK}
-        printf "PHP_FPM_INSTALL_LDAP=true\n"
+        printf "PHP_FPM_INSTALL_LDAP=false\n"
         printf "PHP_FPM_INSTALL_SOAP=true\n"
         printf "PHP_VERSION=\"%s\"\n" "${1:-7.2}"
         printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx redis }"
@@ -204,7 +200,7 @@ changePhpVersion() {
     5.6 | 7.2 | 7.3 | 7.4 | 8.0) ;;
 
     *)
-        printf "Invalid PHP version!  Use of one 7.2, 7.3, 7.4 or 5.6 (if desperate)\n"
+        printf "Invalid PHP version!  Use of one 7.2, 7.3, 7.4, 8.0 or 5.6 (if desperate)\n"
         exit
         ;;
     esac
@@ -213,7 +209,7 @@ changePhpVersion() {
     cd ${LARADOCK_HOME}
 
     stackRunning && {
-        docker-compose ${COMPOSE_CONFIGS} down
+        docker compose ${COMPOSE_CONFIGS} down
     }
 
     updateEnvironment $newVersion
@@ -223,8 +219,9 @@ changePhpVersion() {
     export WORKSPACE_INSTALL_AST WORKSPACE_INSTALL_LDAP WORKSPACE_INSTALL_IMAGEMAGICK
     export PHP_FPM_INSTALL_AST PHP_FPM_INSTALL_LDAP PHP_FPM_INSTALL_IMAGEMAGICK
     export WORKSPACE_INSTALL_SOAP PHP_FPM_INSTALL_SOAP
+    export WORKSPACE_INSTALL_SSHPASS
 
-    docker-compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
+    docker compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
 
     cd "${cwd}"
 }
@@ -276,6 +273,10 @@ checkDependencies() {
             exit
         }
     }
+
+    [ ! -f "$COMPOSE_ALIASES" ] && {
+        touch "$COMPOSE_ALIASES"
+    }
 }
 
 loadProjectHostname() {
@@ -322,10 +323,6 @@ loadAllProjectHostnames() {
 }
 
 getNginxAliases() {
-    [ ! -f "$COMPOSE_ALIASES" ] && {
-        touch "$COMPOSE_ALIASES"
-    }
-
     aliases=$(yq e '.services.nginx.networks.backend.aliases[]' "$COMPOSE_ALIASES")
     [ "$aliases" = 'null' ] && {
         aliases=''
@@ -422,7 +419,7 @@ up)
     [ -z "${SERVICES}" ] && {
         SERVICES="${DEFAULT_SERVICES}"
     }
-    docker-compose ${COMPOSE_CONFIGS} up -d $SERVICES
+    docker compose ${COMPOSE_CONFIGS} up -d $SERVICES
     ;;
 
 switch)
@@ -469,7 +466,7 @@ deregister)
 
 *)
     cd "${LARADOCK_HOME}"
-    docker-compose ${COMPOSE_CONFIGS} $command $*
+    docker compose ${COMPOSE_CONFIGS} $command $*
     ;;
 esac
 
