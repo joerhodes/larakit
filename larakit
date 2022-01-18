@@ -152,7 +152,7 @@ execService() {
         MEMORY_LIMIT='-e COMPOSER_MEMORY_LIMIT=-1'
     }
 
-    container=$(docker ps --filter=name='laradock_workspace*' --format='{{.Names}}')
+    container=$(docker ps --filter=name='workspace' --format='{{.Names}}')
     [ -z "${container}" ] && {
         printf "\nLaradock workspace service is not running.  Use larakit run instead\n"
         exit
@@ -164,7 +164,7 @@ execService() {
 }
 
 stackRunning() {
-    containers=$(docker ps --filter=name='laradock_*' --format='{{.Names}}')
+    containers=$(docker ps --filter=name='laradock' --format='{{.Names}}')
     [ -n "${containers}" ]
     return $?
 }
