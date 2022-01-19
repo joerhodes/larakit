@@ -259,11 +259,12 @@ buildPhpVersion() {
     updateEnvironment "$newVersion"
 
     source "${LARAKIT_HOME}"/configs/environment
-    export APP_CODE_PATH_HOST PHP_VERSION
-    export WORKSPACE_INSTALL_AST WORKSPACE_INSTALL_LDAP WORKSPACE_INSTALL_IMAGEMAGICK
-    export PHP_FPM_INSTALL_AST PHP_FPM_INSTALL_LDAP PHP_FPM_INSTALL_IMAGEMAGICK
-    export WORKSPACE_INSTALL_SOAP PHP_FPM_INSTALL_SOAP
-    export WORKSPACE_INSTALL_SSHPASS
+
+    for line in $(cat "${LARAKIT_HOME}"/configs/environment)
+    do
+        variable=$(echo $line | cut -d= -f1)
+        export $variable
+    done
 
     docker compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
 }
