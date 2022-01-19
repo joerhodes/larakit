@@ -1,6 +1,6 @@
 # Welcome
 
-This document outlines the steps for setting up a functioning development environment for **macOS Big Sur**.  This document is written for a fresh, clean install of **Big Sur**.  If your system is not on **Big Sur**, go upgrade.  If your system is not a clean install, some of the following steps may be unnecessary or may conflict with existing software.  It is your responsibility to solve and document these cases.
+This document outlines the steps for setting up a functioning development environment for **macOS**.  This document is written for a fresh, clean install of **macOS**.  If your system is not on the most recent version, it is recommended to upgrade first.  If your system is not a clean install, some of the following steps may be unnecessary or may conflict with existing software.  It is your responsibility to solve and document these cases.
 
 ## Basics
 
@@ -22,21 +22,24 @@ This document outlines the steps for setting up a functioning development enviro
 
 	Restart Docker and then use either the command line or the menu bar to login into Docker Cloud with your FuseMind email address.
 
-1.	Import `LI Styles20171011.xml` into PHPStorm
+1.	Import `phpstorm_code_style_20211208.xml` into PHPStorm and set as the default.
 
 1.	Follow [macOS Setup Guide](Instructions.md)
 
 1.	Checkout this project to your local system, eg `~/Sites/larakit`
 
-1.	Add the checkout location to your shell search path
+1.	Add the checkout location to your shell search path in either `~/.bashrc` or `~/.zshrc`
 
 		export PATH=$PATH:~/Sites/larakit
+	Then start a new terminal and verify the **PATH** variable.
 		
 1.	Install [Laradock](https://laradock.io)
 
 		larakit laradock install
 		
-1. You do *NOT* need to run `larkit build` since it is built, please follow *Platform Setup* section below to set up the dedicated platforms you needed. Once all setup is done, you just need to run `larakit up`. See below *General Usage* section.
+1. Next you should build the containers for the version of PHP that you need to work with.
+
+		larakit switch 8.1
 
 ## Platform Setup:
 
@@ -53,8 +56,8 @@ This document outlines the steps for setting up a functioning development enviro
 
 1. Run docker: `larakit up`
 1. Shut down docker: `larakit down`
-1. Run bash in docker image: `larakit run bash`
-1. Update composer can be inside the docker with `composer update` or outside with `larakit run composer update`
+1. Run bash in a running container: `larakit exec bash`
+1. Update composer can be run inside the docker container with `larakit exec composer update`
 1. Add project host names `larakit register project.test`
 1. See more information about  [full list of **larakit** commands](larakit-commands.md)
 
