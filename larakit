@@ -2,7 +2,6 @@
 
 # larakit configuration
 PROJECTDIR=$(pwd)
-PROJECT=$(basename "${PROJECTDIR}")
 SITESDIR="${HOME}/Sites"
 LARAKIT_HOME=$(dirname "${BASH_SOURCE[0]}")
 LARADOCK_HOME="${LARAKIT_HOME}/laradock"
@@ -16,15 +15,18 @@ usage() {
     printf "    laradock install        Install Laradock.\n"
     printf "    laradock update         Pull down latest Laradock updates.\n"
     printf "    laradock config         Copy custom config files to Laradock.\n"
-    printf "    env                     Show the values used for the last container build process.\n"
+    printf "    env [reset]             [Reset and] show the values used for container building.\n"
     printf "    exec command [arg...]   Run a command in the workspace container.\n"
     printf "    run command [arg...]    Launch the workspace container and run the command.\n"
     printf "    up [service...]         Launch one or more services.\n"
     printf "    down                    Shutdown Laradock services.\n"
     printf "    ps                      Display running containers.\n"
     printf "    logs                    Display container logs.\n"
-    printf "    switch version          Switch to PHP version: 5.6, 7.2, 7.3, 7.4 or 8.0.\n"
+    printf "    switch version          Switch to PHP version: 5.6, 7.2, 7.3, 7.4, 8.0 or 8.1.\n"
     printf "    nginx install           Copy nginx config templates to current project.\n"
+    printf "    register arg...         Map one or more hostnames into Larakit containers\n"
+    printf "    deregister arg...       Remove one of more hostnames from Larakit mapping\n"
+    printf "    reset                   Removes all laradock images, resets environment and aliases files\n"
     printf "\n"
     printf "Additional commands and options are passed directly to docker-compose.\n"
     printf "Run 'docker-compose help' for more information.\n"
@@ -36,8 +38,12 @@ loadSshKeys() {
     keys=$(ssh-add -L)
     [ -n "${keys}" ] || {
         printf "\nLoading SSH Keys for SSH Agent\n"
-        # @todo This will need to use the --apple-load-keychain once everyone is on macOS 12kl
-        ssh-add -K
+        macOsVersion=$(sw_vers -productVersion)
+
+        options='-K'
+        [ ${macOsVersion:0:2} -ge 12 ] && options='--apple-use-keychain'
+
+        ssh-add $options
     }
 }
 
@@ -47,7 +53,7 @@ copyConfigs() {
 }
 
 updateWorkspace() {
-    mv ${LARADOCK_HOME}/workspace/Dockerfile ${LARADOCK_HOME}/workspace/Dockerfile.bak
+    mv "${LARADOCK_HOME}"/workspace/Dockerfile "${LARADOCK_HOME}"/workspace/Dockerfile.bak
 
     awk 'BEGIN { nearEnd=0; }
         /Final Touch/ { nearEnd=1; }
@@ -59,10 +65,10 @@ updateWorkspace() {
                 print "RUN apt-get install -y p7zip-full";
             }
         }' \
-        ${LARADOCK_HOME}/workspace/Dockerfile.bak \
-        > ${LARADOCK_HOME}/workspace/Dockerfile
+        "${LARADOCK_HOME}"/workspace/Dockerfile.bak \
+        > "${LARADOCK_HOME}"/workspace/Dockerfile
 
-    rm ${LARADOCK_HOME}/workspace/Dockerfile.bak
+    rm "${LARADOCK_HOME}"/workspace/Dockerfile.bak
 }
 
 installLaradock() {
@@ -120,7 +126,7 @@ laradockCommand() {
         ;;
 
     *)
-        printf "\nUnknown larakit laradock command: %s\n" ${subCommand}
+        printf "\nUnknown larakit laradock command: %s\n" "${subCommand}"
         ;;
     esac
 }
@@ -166,53 +172,91 @@ execService() {
 stackRunning() {
     containers=$(docker ps --filter=name='laradock' --format='{{.Names}}')
     [ -n "${containers}" ]
-    return $?
 }
 
 updateEnvironment() {
-    {
-        INSTALL_IMAGEMAGICK=true
+    phpVersion=$1
 
-        printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
-        printf "WORKSPACE_INSTALL_AST=false\n"
-        printf "WORKSPACE_INSTALL_IMAGEMAGICK=%s\n" ${INSTALL_IMAGEMAGICK}
-        printf "WORKSPACE_INSTALL_LDAP=true\n"
-        printf "WORKSPACE_INSTALL_SOAP=true\n"
-        printf "WORKSPACE_INSTALL_SSHPASS=true\n"
-        printf "PHP_FPM_INSTALL_AST=false\n"
-        printf "PHP_FPM_INSTALL_IMAGEMAGICK=%s\n" ${INSTALL_IMAGEMAGICK}
-        printf "PHP_FPM_INSTALL_LDAP=false\n"
-        printf "PHP_FPM_INSTALL_SOAP=true\n"
-        printf "PHP_VERSION=\"%s\"\n" "${1:-7.2}"
-        printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx redis }"
-        printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm}"
-    } > "${LARAKIT_HOME}"/configs/environment
+    envPath="${LARAKIT_HOME}"/configs/environment
+    tmpPath="${LARAKIT_HOME}"/configs/environment.tmp
+
+    mv "$envPath" "$tmpPath"
+    cat "$tmpPath" | sed "s/PHP_VERSION=.*/PHP_VERSION=$phpVersion/" > $envPath
+
+    rm "$tmpPath"
 }
 
 showEnvironment() {
     cat "${LARAKIT_HOME}"/configs/environment
 }
 
-changePhpVersion() {
+resetEnvironment() {
+    {
+        printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
+        printf "WORKSPACE_INSTALL_AST=false\n"
+        printf "WORKSPACE_INSTALL_IMAGEMAGICK=true\n"
+        printf "WORKSPACE_INSTALL_LDAP=true\n"
+        printf "WORKSPACE_INSTALL_SOAP=true\n"
+        printf "WORKSPACE_INSTALL_SSHPASS=true\n"
+        printf "PHP_FPM_INSTALL_AST=false\n"
+        printf "PHP_FPM_INSTALL_IMAGEMAGICK=true\n"
+        printf "PHP_FPM_INSTALL_LDAP=false\n"
+        printf "PHP_FPM_INSTALL_SOAP=true\n"
+        printf "PHP_VERSION=%s\n" "8.0"
+        printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx redis}"
+        printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm}"
+    } > "${LARAKIT_HOME}"/configs/environment
+}
+
+imageVersionExists() {
+    version=$1
+
+    source "${LARAKIT_HOME}"/configs/environment
+
+    nServices=0
+    nImages=0
+    for service in $PHP_SERVICES
+    do
+        nServices=$((nServices + 1))
+        image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "$service" | grep "$version")
+        [ -n "${image}" ] && {
+            nImages=$((nImages + 1))
+        }
+    done
+
+    [ $nImages -eq $nServices ]
+}
+
+imageUntagVersion() {
+    version=$1
+
+    source "${LARAKIT_HOME}"/configs/environment
+
+    for service in $PHP_SERVICES
+    do
+        image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "$service" | grep "$version")
+        [ -n "$image" ] && docker rmi "$image"
+    done
+}
+
+imageTagVersion() {
+    sourceTag=$1
+    newTag=$2
+
+    source "${LARAKIT_HOME}"/configs/environment
+
+    for service in $PHP_SERVICES
+    do
+        image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "$service" | grep "$sourceTag")
+        newImage=$(echo "$image" | cut -d: -f1)
+        [ -n "$image" ] && docker tag "$image" "$newImage:$newTag"
+    done
+}
+
+buildPhpVersion() {
     newVersion=$1
 
-    case "${newVersion}" in
-    5.6 | 7.2 | 7.3 | 7.4 | 8.0) ;;
-
-    *)
-        printf "Invalid PHP version!  Use of one 7.2, 7.3, 7.4, 8.0 or 5.6 (if desperate)\n"
-        exit
-        ;;
-    esac
-
-    cwd=$(pwd)
-    cd ${LARADOCK_HOME}
-
-    stackRunning && {
-        docker compose ${COMPOSE_CONFIGS} down
-    }
-
-    updateEnvironment $newVersion
+    updateEnvironment "$newVersion"
 
     source "${LARAKIT_HOME}"/configs/environment
     export APP_CODE_PATH_HOST PHP_VERSION
@@ -222,6 +266,36 @@ changePhpVersion() {
     export WORKSPACE_INSTALL_SSHPASS
 
     docker compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
+}
+
+changePhpVersion() {
+    newVersion=$1
+
+    case "${newVersion}" in
+    5.6 | 7.2 | 7.3 | 7.4 | 8.0 | 8.1) ;;
+
+    *)
+        printf "Invalid PHP version!  Use of one 7.2, 7.3, 7.4, 8.0, 8.1 or 5.6 (if desperate)\n"
+        exit
+        ;;
+    esac
+
+    cwd=$(pwd)
+    cd "${LARADOCK_HOME}"
+
+    stackRunning && {
+        docker compose ${COMPOSE_CONFIGS} down
+    }
+
+    imageVersionExists latest && imageUntagVersion latest
+
+    if imageVersionExists "$newVersion"
+    then
+        imageTagVersion "$newVersion" latest
+    else
+        buildPhpVersion "$newVersion"
+        imageTagVersion latest "$newVersion"
+    fi
 
     cd "${cwd}"
 }
@@ -246,7 +320,7 @@ nginxCommand() {
         ;;
 
     *)
-        printf "\nUnknown larakit nginx command: %s\n" ${subCommand}
+        printf "\nUnknown larakit nginx command: %s\n" "${subCommand}"
         ;;
     esac
 }
@@ -264,7 +338,7 @@ checkDependencies() {
         exit
     }
 
-    path=$(which yq)
+    which -s yq
     [ $? -ne 0 ] && {
         printf "\nInstalling dependencies 'yq'...\n"
         brew install yq
@@ -274,9 +348,9 @@ checkDependencies() {
         }
     }
 
-    [ ! -f "$COMPOSE_ALIASES" ] && {
-        touch "$COMPOSE_ALIASES"
-    }
+    [ ! -f "$COMPOSE_ALIASES" ] && touch "$COMPOSE_ALIASES"
+
+    [ ! -f "${LARAKIT_HOME}/configs/environment" ] && resetEnvironment
 }
 
 loadProjectHostname() {
@@ -318,7 +392,7 @@ loadAllProjectHostnames() {
         }
     done
 
-    cd $cwd
+    cd "$cwd"
     echo $projecthosts
 }
 
@@ -375,6 +449,22 @@ deregisterHostnames() {
     errors=$(newaliases="$aliases" yq e -iP '.services.nginx.networks.backend.aliases = env(newaliases)' "$COMPOSE_ALIASES")
 }
 
+reset() {
+    cwd=$(pwd)
+
+    cd "${LARADOCK_HOME}"
+    docker compose ${COMPOSE_CONFIGS} down
+
+    images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep laradock)
+    [ -n "$images" ] && docker rmi $images
+
+    resetEnvironment
+
+    rm -f "${COMPOSE_ALIASES}"
+    touch "$COMPOSE_ALIASES"
+    aliases="[]" yq e -iP '.services.nginx.networks.backend.aliases = env(aliases)' "$COMPOSE_ALIASES" 2>/dev/null
+}
+
 
 
 checkDependencies
@@ -401,6 +491,7 @@ laradock)
     ;;
 
 env)
+    [ "$1" = "reset" ] && resetEnvironment
     showEnvironment
     ;;
 
@@ -462,6 +553,10 @@ deregister)
     [ -n "$hostnames" ] && {
         deregisterHostnames $hostnames
     }
+    ;;
+
+reset)
+    reset
     ;;
 
 *)
