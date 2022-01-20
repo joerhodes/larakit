@@ -1,4 +1,4 @@
-## Dockerized Dev Kit for macOS Catalina
+## Dockerized Development Kit for macOS
 
 1.  Stop Apache
 
@@ -9,6 +9,12 @@
 1.	Install dsnmasq
 
 	    $ brew install dnsmasq
+	    
+1.	Add the install path of dnsmasq to your PATH in your startup file, either `~/.bashrc` or `~/.zshrc`.
+
+		export PATH=$PATH:/opt/homebrew/sbin
+	
+	The install path on your system maybe different.
 
 1.	Add the following lines to `/opt/homebrew/etc/dnsmasq.conf`.  If this file does not exist, try this path `/usr/local/etc/dnsmasq.conf`.  
 
