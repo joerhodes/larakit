@@ -106,3 +106,9 @@ The larakit stack will need to be restarted after this commands for the aliases 
 	larakit down
 	larakit up
 
+## Docker build environment
+
+The file `configs/environment` contains values that are passed to the docker image building process.  Most of the values in this file have been set to satisfy the OS dependencies of various projects.  It may be necessary to disable able one or more of these features when build a new image.  Or it may be necessary to enable a feature that had previously been disabled.  
+
+This file also contains the list of services (containers) that are launched with `larakit up`.   A newly created file contains the bare minimum.   It may be necessary to add more though.  One example is adding **beanstalkd** and **beanstalkd-console** to the list of `DEFAULT_SERVICES`.  Note that these service names are defined in the `laradock/docker-compose.yml` file.
+

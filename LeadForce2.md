@@ -15,19 +15,4 @@ This document describes the process of installing the dependencies needed by the
 
 	These libraries should be part of the project's `composer.json` dependencies.
         
-        cd ~/Sites
-        mkdir Includes
-        cd Includes
-        git clone ssh://git@bitbucket.org/fusemind/zend.git Zend
-        git clone ssh://git@bitbucket.org/fusemind/adodb.git adodb
-        mkdir phpseclib
-        cd phpseclib
-        git clone ssh://git@bitbucket.org/fusemind/phpseclib.git phpseclib
-        cd ..
-        git clone ssh://git@bitbucket.org/fusemind/sferrornotifierplugin.git sfErrorNotifierPlugin
-        git clone ssh://git@bitbucket.org/fusemind/sfguardextraplugin.git sfGuardExtraPlugin
-        git clone ssh://git@bitbucket.org/fusemind/sfguardplugin.git sfGuardPlugin
-        git clone ssh://git@bitbucket.org/fusemind/symfony.git symfony
-        cd ..
-        ln -s Includes/symfony symfony
         
