@@ -262,9 +262,14 @@ buildPhpVersion() {
 
     for line in $(cat "${LARAKIT_HOME}"/configs/environment)
     do
+        [[ "$line" != *=* ]] && continue
+        [[ "$line" == *SERVICES=* ]] && continue
+
         variable=$(echo $line | cut -d= -f1)
-        export $variable
+        [ "$variable" != 'DEFAULT_SERVICES' ] && [ "$variable" != 'PHP_SERVICES' ] && export $variable
     done
+
+    export DEFAULT_SERVICES PHP_SERVICES
 
     docker compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
 }
@@ -558,6 +563,10 @@ deregister)
 
 reset)
     reset
+    ;;
+
+test)
+    buildPhpVersion $*
     ;;
 
 *)
