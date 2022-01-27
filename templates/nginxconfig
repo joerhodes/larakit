@@ -11,13 +11,13 @@ usage() {
 
 # Look for .env to source variables from
 if [ ! -r ".env" ]; then
-    printf "Must run in a Laravel project with an .env file.\n"
+    printf "Must run in a project with a .env file.\n"
     exit
 fi
 
 source .env
 
-ENV=${APP_ENV}
+ENV=${APP_ENV:-${ENVIRONMENT}}
 
 # If user overrides environment, use it
 [ $# -eq 1 ] && {
@@ -30,30 +30,39 @@ if [ "$ENV" == "local" ]; then
 fi
 
 # Get domain from application's URL
-DOMAIN=$(basename ${APP_URL})
+[ -n "${VHOST_NAME}" ] && DOMAIN="${VHOST_NAME}" || DOMAIN=$(basename "${APP_URL}")
+
+[ -z "${LMS_CLIENT}" ] && LMS_CLIENT=$(echo ${DOMAIN} | cut -d. -f1)
+
+[ -z "${LMS_DSN}" ] && {
+    LMS_DSN=pgsql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}
+}
+
+[ -z "${YUI_BASE}" ] && YUI_BASE=yui.fusemind.com/2.9.0
 
 case "${ENV}" in
     "docker")
         SERVERNAME=${DOMAIN}
         SSL=false
+        LMS_LIVE=FALSE
+        SSL_URL=${LMS_SSL_URL:-http://${DOMAIN}/}
+        NONSSL_URL=${LMS_NONSSL_URL:-http://${DOMAIN}/}
         ;;
 
-    "dev")
+    "dev"|"stage")
         SERVERNAME=${DOMAIN}
         SSL=true
-        SSL_STUB=
-        ;;
-
-    "stage")
-        SERVERNAME=${DOMAIN}
-        SSL=true
-        SSL_STUB=
+        LMS_LIVE=FALSE
+        SSL_URL=${LMS_SSL_URL:-https://${DOMAIN}/}
+        NONSSL_URL=${LMS_NONSSL_URL:-http://${DOMAIN}/}
         ;;
 
     "prod")
         SERVERNAME=${DOMAIN}
         SSL=true
-        SSL_STUB=
+        LMS_LIVE=TRUE
+        SSL_URL=${LMS_SSL_URL:-https://${DOMAIN}/}
+        NONSSL_URL=${LMS_NONSSL_URL:-http://${DOMAIN}/}
         ;;
 
     *)
@@ -62,15 +71,26 @@ case "${ENV}" in
         ;;
 esac
 
-PROJECTDIR=$( pwd )
+PROJECTDIR=$(pwd)
 if [ ! -f ${PROJECTDIR}/nginxconfig ]
 then
     echo "Must run nginxconfig from the project directory!"
     exit 255
 fi
 
-PROJECT=$( basename ${PROJECTDIR} )
+[ ! -d ${PROJECTDIR}/web ] && [ ! -d ${PROJECTDIR}/lms/htdocs ] && {
+    echo "Unable to determine webroot!!"
+    echo "Only Laravel and LF2 projects are supported."
+    exit 255
+}
+
+LMS=false
+[ -d ${PROJECTDIR}/lms/htdocs ] && LMS=true
+
+PROJECT=$(basename ${PROJECTDIR})
 PROJECTDIR="/var/www/${PROJECT}"
+
+[ $LMS == true ] && WEBROOT=${PROJECTDIR}/lms/htdocs || WEBROOT=${PROJECTDIR}/web
 
 if [ ! -f nginx.template.conf ]
 then
@@ -100,19 +120,73 @@ awkOption="
         gsub(/%SSLSTUB%/, \"${SSLSTUB}\", \$0); print; next;
     }
 
+    /%WEBROOT%/ {
+        gsub(/%WEBROOT%/, \"${WEBROOT}\", \$0); print; next;
+    }
+
+    /%LMSCLIENT%/ {
+        gsub(/%LMSCLIENT%/, \"${LMS_CLIENT}\", \$0); print; next;
+    }
+
+    /%LMSLIVE%/ {
+        gsub(/%LMSLIVE%/, \"${LMS_LIVE}\", \$0); print; next;
+    }
+
+    /%SSLURL%/ {
+        gsub(/%SSLURL%/, \"${SSL_URL}\", \$0); print; next;
+    }
+
+    /%NONSSLURL%/ {
+        gsub(/%NONSSLURL%/, \"${NONSSL_URL}\", \$0); print; next;
+    }
+
+    /%LMSDSN%/ {
+        gsub(/%LMSDSN%/, \"${LMS_DSN}\", \$0); print; next;
+    }
+
+    /%YUIBASE%/ {
+        gsub(/%YUIBASE%/, \"${YUI_BASE}\", \$0); print; next;
+    }
+
     { print }
 "
 
-# If SSL is not enabled, remove the SSL block
-if [ $SSL == false ]; then
-    awkOption="
-        /%SSL%/,/%ENDSSL%/ {
-            gsub(/.*/, \"\", \$0); print; next;
+[ "$SSL" == true ] && {
+    listenOption="
+        /%LISTEN%/ {
+            print \"    listen 443 ssl;\";
+            print \"    include /etc/nginx/ssl-fusemind.conf;\";
+            next;
+        }
+    "
+} || {
+    listenOption="
+        /%LISTEN%/ {
+            print \"    listen 80;\";
+            next;
+        }
+    "
+}
+
+[ "$LMS" == true ] && {
+    lmsOption="
+        /%LMS%/ {
+            next;
         }
 
-        $awkOption
+        /%ENDLMS%/ {
+            next;
+        }
     "
-fi
+} || {
+    lmsOption="
+        /%LMS%/,/%ENDLMS%/ {
+            next;
+        }
+    "
+}
+
+awkOption="$listenOption $lmsOption $awkOption"
 
 awk "$awkOption" nginx.template.conf > nginx.${ENV}.conf
 
