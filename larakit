@@ -71,6 +71,15 @@ updateWorkspace() {
     rm "${LARADOCK_HOME}"/workspace/Dockerfile.bak
 }
 
+updatePhpFpm() {
+    version=5.6
+
+    iniFile="${LARADOCK_HOME}/php-fpm/php${version}.ini"
+    bakFile="${iniFile}.bak"
+    mv "${iniFile}" "${bakFile}"
+    sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"
+}
+
 installLaradock() {
     [ -d "${LARADOCK_HOME}" ] && {
         printf "Laradock appears to be installed.  Try update instead!\n"
@@ -109,16 +118,22 @@ laradockCommand() {
         installLaradock
         copyConfigs
         updateWorkspace
+        updatePhpFpm
         ;;
 
     update)
         updateLaradock
         copyConfigs
         updateWorkspace
+        updatePhpFpm
         ;;
 
     updateWorkspace)
         updateWorkspace
+        ;;
+
+    updatePhpFpm)
+        updatePhpFpm
         ;;
 
     config)
@@ -192,6 +207,13 @@ showEnvironment() {
 
 resetEnvironment() {
     {
+        printf "# This file overrides the features enabled in the various Laradock containers.\n"
+        printf "# So changing any value or adding values requires that the containers be rebuilt.\n"
+        printf "#\n"
+        printf "# The following command will remove all laradock workspace containers to force a rebuld.\n"
+        printf "#\n"
+        printf "# docker rmi \$(docker images laradocker_workspace --format '{{.Repository}}:{{.Tag}}')\n"
+        printf "#\n"
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
         printf "WORKSPACE_INSTALL_AST=false\n"
         printf "WORKSPACE_INSTALL_IMAGEMAGICK=true\n"
