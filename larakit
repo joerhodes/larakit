@@ -53,6 +53,11 @@ copyConfigs() {
 }
 
 updateWorkspace() {
+    cwd=$(pwd)
+    cd "$LARADOCK_HOME"
+    git checkout -- workspace
+    cd "$cwd"
+
     [ ! -f "${LARAKIT_HOME}"/configs/inject-workspace-dockerfile ] && return
 
     inject=$(cat "${LARAKIT_HOME}/configs/inject-workspace-dockerfile")
@@ -80,12 +85,43 @@ updateWorkspace() {
 }
 
 updatePhpFpm() {
+    cwd=$(pwd)
+    cd "$LARADOCK_HOME"
+    git checkout -- php-fpm
+    cd "$cwd"
+
     version=5.6
 
     iniFile="${LARADOCK_HOME}/php-fpm/php${version}.ini"
     bakFile="${iniFile}.bak"
     mv "${iniFile}" "${bakFile}"
     sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"
+    rm "${bakFile}"
+
+    [ ! -f "${LARAKIT_HOME}"/configs/inject-php-fpm-dockerfile ] && return
+
+    inject=$(cat "${LARAKIT_HOME}/configs/inject-php-fpm-dockerfile")
+
+    [ -z "$inject" ] && return
+
+    mv "${LARADOCK_HOME}"/php-fpm/Dockerfile "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak
+
+    awk "BEGIN { nearEnd=0; }
+        /Final Touch/ { nearEnd=1; }
+        {
+            if (!nearEnd || (\$0 !~ /USER root/)) {
+                print;
+            } else {
+                print;
+                print \"\";
+                system(\"cat '${LARAKIT_HOME}/configs/inject-php-fpm-dockerfile'\");
+                print \"\";
+            }
+        }" \
+        "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak \
+        > "${LARADOCK_HOME}"/php-fpm/Dockerfile
+
+    rm "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak
 }
 
 installLaradock() {
@@ -300,6 +336,10 @@ buildPhpVersion() {
     done
 
     export DEFAULT_SERVICES PHP_SERVICES
+
+    echo $PHP_SERVICES
+    [[ "$PHP_SERVICES" == *workspace* ]] && updateWorkspace
+    [[ "$PHP_SERVICES" == *php-fpm* ]] && updatePhpFpm
 
     docker compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
 }

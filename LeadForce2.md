@@ -15,4 +15,19 @@ This document describes the process of installing the dependencies needed by the
 
 	These libraries should be part of the project's `composer.json` dependencies.
         
-        
+1.	Update the php-fpm container modules.
+
+		echo 'PHP_FPM_INSTALL_PGSQL=true' >> ~/Sites/larakit/configs/environment
+		docker rmi $(docker images laradock_php-fpm\* --format '{{.Repository}}:{{.Tag}}')
+		larakit switch 5.6
+
+1.	Set up the LeadForce 2 project for NGINX.
+
+		cd ~/Sites/project
+		*Edit .env*
+		larakit nginx install
+		larakit exec ./nginxconfig
+		larakit register all
+		larakit restart nginx
+
+	

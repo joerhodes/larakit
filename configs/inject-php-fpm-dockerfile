@@ -1,0 +1,18 @@
+###########################################################################
+# PDFLib for student_insurance
+#
+# https://www.pdflib.com/download/pdflib-product-family/
+###########################################################################
+RUN set -ex  \
+    && cd /tmp  \
+    && PDFLIB_ARCH=$(arch) \
+    && if [ ${PDFLIB_ARCH} != 'aarch64' ]; then PDFLIB_ARCH=x64; fi \
+    && curl -L -o pdflib.tar.gz "https://www.pdflib.com/binaries/PDFlib/931/PDFlib-9.3.1p5-Linux-${PDFLIB_ARCH}-php.tar.gz" \
+    && tar -xzf pdflib.tar.gz \
+    && mv PDFlib-* pdflib \
+    && PHP_EXT_DIR=`php-config --extension-dir` \
+    && PHP_MAIN_VERSION=$(php --version | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -n1 | cut -d. -f1-2 | sed 's/\.//g') \
+    && cp pdflib/bind/php/php-${PHP_MAIN_VERSION}0-nts/php_pdflib.so $PHP_EXT_DIR \
+    && docker-php-ext-enable php_pdflib \
+    && rm -r pdflib  \
+    && rm pdflib.tar.gz
