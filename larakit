@@ -53,18 +53,31 @@ copyConfigs() {
 }
 
 updateWorkspace() {
+    cwd=$(pwd)
+    cd "$LARADOCK_HOME"
+    git checkout -- workspace
+    cd "$cwd"
+
+    [ ! -f "${LARAKIT_HOME}"/configs/inject-workspace-dockerfile ] && return
+
+    inject=$(cat "${LARAKIT_HOME}/configs/inject-workspace-dockerfile")
+
+    [ -z "$inject" ] && return
+
     mv "${LARADOCK_HOME}"/workspace/Dockerfile "${LARADOCK_HOME}"/workspace/Dockerfile.bak
 
-    awk 'BEGIN { nearEnd=0; }
+    awk "BEGIN { nearEnd=0; }
         /Final Touch/ { nearEnd=1; }
         {
-            if (!nearEnd || ($0 !~ /USER root/)) {
+            if (!nearEnd || (\$0 !~ /USER root/)) {
                 print;
             } else {
                 print;
-                print "RUN apt-get install -y p7zip-full";
+                print \"\";
+                system(\"cat '${LARAKIT_HOME}/configs/inject-workspace-dockerfile'\");
+                print \"\";
             }
-        }' \
+        }" \
         "${LARADOCK_HOME}"/workspace/Dockerfile.bak \
         > "${LARADOCK_HOME}"/workspace/Dockerfile
 
@@ -72,12 +85,43 @@ updateWorkspace() {
 }
 
 updatePhpFpm() {
+    cwd=$(pwd)
+    cd "$LARADOCK_HOME"
+    git checkout -- php-fpm
+    cd "$cwd"
+
     version=5.6
 
     iniFile="${LARADOCK_HOME}/php-fpm/php${version}.ini"
     bakFile="${iniFile}.bak"
     mv "${iniFile}" "${bakFile}"
     sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"
+    rm "${bakFile}"
+
+    [ ! -f "${LARAKIT_HOME}"/configs/inject-php-fpm-dockerfile ] && return
+
+    inject=$(cat "${LARAKIT_HOME}/configs/inject-php-fpm-dockerfile")
+
+    [ -z "$inject" ] && return
+
+    mv "${LARADOCK_HOME}"/php-fpm/Dockerfile "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak
+
+    awk "BEGIN { nearEnd=0; }
+        /Final Touch/ { nearEnd=1; }
+        {
+            if (!nearEnd || (\$0 !~ /USER root/)) {
+                print;
+            } else {
+                print;
+                print \"\";
+                system(\"cat '${LARAKIT_HOME}/configs/inject-php-fpm-dockerfile'\");
+                print \"\";
+            }
+        }" \
+        "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak \
+        > "${LARADOCK_HOME}"/php-fpm/Dockerfile
+
+    rm "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak
 }
 
 installLaradock() {
@@ -212,7 +256,7 @@ resetEnvironment() {
         printf "#\n"
         printf "# The following command will remove all laradock workspace containers to force a rebuld.\n"
         printf "#\n"
-        printf "# docker rmi \$(docker images laradocker_workspace --format '{{.Repository}}:{{.Tag}}')\n"
+        printf "# docker rmi \$(docker images laradock_workspace\* --format '{{.Repository}}:{{.Tag}}')\n"
         printf "#\n"
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
         printf "WORKSPACE_INSTALL_AST=false\n"
@@ -292,6 +336,9 @@ buildPhpVersion() {
     done
 
     export DEFAULT_SERVICES PHP_SERVICES
+
+    [[ "$PHP_SERVICES" == *workspace* ]] && updateWorkspace
+    [[ "$PHP_SERVICES" == *php-fpm* ]] && updatePhpFpm
 
     docker compose ${COMPOSE_CONFIGS} build ${PHP_SERVICES}
 }
@@ -585,10 +632,6 @@ deregister)
 
 reset)
     reset
-    ;;
-
-test)
-    buildPhpVersion $*
     ;;
 
 *)
