@@ -5,9 +5,9 @@
 ###########################################################################
 RUN set -ex  \
     && cd /tmp  \
-    && PDFLIB_ARCH=$(arch) \
-    && if [ ${PDFLIB_ARCH} != 'aarch64' ]; then PDFLIB_ARCH=x64; fi \
-    && curl -L -o pdflib.tar.gz "https://www.pdflib.com/binaries/PDFlib/931/PDFlib-9.3.1p5-Linux-${PDFLIB_ARCH}-php.tar.gz" \
+    && PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/931/PDFlib-9.3.1p5-Linux-aarch64-php.tar.gz \
+    && if [ "$(arch)" != 'aarch64' ]; then \PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1000/PDFlib-10.0.0-Linux-x64-php.tar.gz ; fi \
+    && curl -L -o pdflib.tar.gz $PDFLIB_URL \
     && tar -xzf pdflib.tar.gz \
     && mv PDFlib-* pdflib \
     && PHP_EXT_DIR=`php-config --extension-dir` \
