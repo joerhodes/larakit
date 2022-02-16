@@ -53,18 +53,26 @@ copyConfigs() {
 }
 
 updateWorkspace() {
+    [ ! -f "${LARAKIT_HOME}"/configs/inject-workspace-dockerfile ] && return
+
+    inject=$(cat "${LARAKIT_HOME}/configs/inject-workspace-dockerfile")
+
+    [ -z "$inject" ] && return
+
     mv "${LARADOCK_HOME}"/workspace/Dockerfile "${LARADOCK_HOME}"/workspace/Dockerfile.bak
 
-    awk 'BEGIN { nearEnd=0; }
+    awk "BEGIN { nearEnd=0; }
         /Final Touch/ { nearEnd=1; }
         {
-            if (!nearEnd || ($0 !~ /USER root/)) {
+            if (!nearEnd || (\$0 !~ /USER root/)) {
                 print;
             } else {
                 print;
-                print "RUN apt-get install -y p7zip-full";
+                print \"\";
+                system(\"cat '${LARAKIT_HOME}/configs/inject-workspace-dockerfile'\");
+                print \"\";
             }
-        }' \
+        }" \
         "${LARADOCK_HOME}"/workspace/Dockerfile.bak \
         > "${LARADOCK_HOME}"/workspace/Dockerfile
 
@@ -212,7 +220,7 @@ resetEnvironment() {
         printf "#\n"
         printf "# The following command will remove all laradock workspace containers to force a rebuld.\n"
         printf "#\n"
-        printf "# docker rmi \$(docker images laradocker_workspace --format '{{.Repository}}:{{.Tag}}')\n"
+        printf "# docker rmi \$(docker images laradock_workspace\* --format '{{.Repository}}:{{.Tag}}')\n"
         printf "#\n"
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
         printf "WORKSPACE_INSTALL_AST=false\n"
@@ -588,7 +596,7 @@ reset)
     ;;
 
 test)
-    buildPhpVersion $*
+    updateWorkspace $*
     ;;
 
 *)
