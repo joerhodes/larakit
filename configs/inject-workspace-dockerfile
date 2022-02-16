@@ -1,10 +1,16 @@
 #####################################
 # Add extra debian/ubuntu packages
+#
+# Package added | For Project
+# --------------|--------------------
+# p7zip-full    | ddgorder/ddgorder3
+# tcm           | policyprint
 #####################################
 RUN apt-get install -y p7zip-full tcm
 
 ##########################################################
-# PDFLib for workspace
+# PDFLib for policyprint and student_insurance
+#
 # https://www.pdflib.com/download/pdflib-product-family/
 ##########################################################
 RUN set -ex  \
