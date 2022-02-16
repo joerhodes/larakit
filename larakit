@@ -337,7 +337,6 @@ buildPhpVersion() {
 
     export DEFAULT_SERVICES PHP_SERVICES
 
-    echo $PHP_SERVICES
     [[ "$PHP_SERVICES" == *workspace* ]] && updateWorkspace
     [[ "$PHP_SERVICES" == *php-fpm* ]] && updatePhpFpm
 
@@ -633,10 +632,6 @@ deregister)
 
 reset)
     reset
-    ;;
-
-test)
-    updateWorkspace $*
     ;;
 
 *)
