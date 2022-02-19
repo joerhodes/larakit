@@ -6,7 +6,7 @@
 RUN set -ex  \
     && cd /tmp  \
     && PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/931/PDFlib-9.3.1p5-Linux-aarch64-php.tar.gz \
-    && if [ "$(arch)" != 'aarch64' ]; then \PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1000/PDFlib-10.0.0-Linux-x64-php.tar.gz ; fi \
+    && if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1000/PDFlib-10.0.0p1-Linux-x64-php.tar.gz ; fi \
     && curl -L -o pdflib.tar.gz $PDFLIB_URL \
     && tar -xzf pdflib.tar.gz \
     && mv PDFlib-* pdflib \
