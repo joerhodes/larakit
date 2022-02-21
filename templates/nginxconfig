@@ -86,7 +86,7 @@ then
     exit 255
 fi
 
-[ ! -d ${PROJECTDIR}/web ] && [ ! -d ${PROJECTDIR}/lms/htdocs ] && {
+[ ! -d ${PROJECTDIR}/public ] && [ ! -d ${PROJECTDIR}/lms/htdocs ] && {
     echo "Unable to determine webroot!!"
     echo "Only Laravel and LF2 projects are supported."
     exit 255
@@ -97,7 +97,7 @@ LMS=false
 
 PROJECTDIR="/var/www/${PROJECT}"
 
-[ $LMS == true ] && WEBROOT=${PROJECTDIR}/lms/htdocs || WEBROOT=${PROJECTDIR}/web
+[ $LMS == true ] && WEBROOT=${PROJECTDIR}/lms/htdocs || WEBROOT=${PROJECTDIR}/public
 
 if [ ! -f nginx.template.conf ]
 then
