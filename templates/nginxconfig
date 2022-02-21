@@ -30,8 +30,8 @@ if [ "$ENV" == "local" ]; then
     ENV="docker"
 fi
 
-# If environment is "local", make it "docker"
-if [ "$ENV" == "production" ]; then
+# If environment is "production", make it "prod"
+if [[ "$ENV" == *"prod"* ]]; then
     ENV="prod"
 fi
 
