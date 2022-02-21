@@ -4,8 +4,9 @@
 #
 
 usage() {
-    printf "\nUsage: ./nginxconfig [environment]\n";
-    printf "\tenvironment\t{docker|dev|stage|prod}\n\n";
+    printf "\n======== Larakit Command Usage ========\n";
+    printf "The command ‘./nginxconfig’ is used to configure NGINX for a Laravel project or an LF2 client.\n";
+    printf "Please make sure you have a valid .env file in the project root to get started with your dream.\n";
     exit
 }
 
@@ -29,6 +30,11 @@ if [ "$ENV" == "local" ]; then
     ENV="docker"
 fi
 
+# If environment is "production", make it "prod"
+if [[ "$ENV" == *"prod"* ]]; then
+    ENV="prod"
+fi
+
 # Get domain from application's URL
 [ -n "${VHOST_NAME}" ] && DOMAIN="${VHOST_NAME}" || DOMAIN=$(basename "${APP_URL}")
 
@@ -40,6 +46,9 @@ fi
 
 [ -z "${YUI_BASE}" ] && YUI_BASE=yui.fusemind.com/2.9.0
 
+PROJECTDIR=$(pwd)
+PROJECT=$(basename ${PROJECTDIR})
+
 case "${ENV}" in
     "docker")
         SERVERNAME=${DOMAIN}
@@ -47,6 +56,7 @@ case "${ENV}" in
         LMS_LIVE=FALSE
         SSL_URL=${LMS_SSL_URL:-http://${DOMAIN}/}
         NONSSL_URL=${LMS_NONSSL_URL:-http://${DOMAIN}/}
+        UPSTREAM=php-upstream
         ;;
 
     "dev"|"stage")
@@ -55,6 +65,7 @@ case "${ENV}" in
         LMS_LIVE=FALSE
         SSL_URL=${LMS_SSL_URL:-https://${DOMAIN}/}
         NONSSL_URL=${LMS_NONSSL_URL:-http://${DOMAIN}/}
+        UPSTREAM=unix:/var/run/php-fpm/${PROJECT}.sock
         ;;
 
     "prod")
@@ -63,6 +74,7 @@ case "${ENV}" in
         LMS_LIVE=TRUE
         SSL_URL=${LMS_SSL_URL:-https://${DOMAIN}/}
         NONSSL_URL=${LMS_NONSSL_URL:-http://${DOMAIN}/}
+        UPSTREAM=unix:/var/run/php-fpm/${PROJECT}.sock
         ;;
 
     *)
@@ -71,14 +83,16 @@ case "${ENV}" in
         ;;
 esac
 
-PROJECTDIR=$(pwd)
+ERRORLOG=/var/log/nginx/${PROJECT}_error.log
+ACCESSLOG=/var/log/nginx/${PROJECT}_access.log
+
 if [ ! -f ${PROJECTDIR}/nginxconfig ]
 then
     echo "Must run nginxconfig from the project directory!"
     exit 255
 fi
 
-[ ! -d ${PROJECTDIR}/web ] && [ ! -d ${PROJECTDIR}/lms/htdocs ] && {
+[ ! -d ${PROJECTDIR}/public ] && [ ! -d ${PROJECTDIR}/lms/htdocs ] && {
     echo "Unable to determine webroot!!"
     echo "Only Laravel and LF2 projects are supported."
     exit 255
@@ -87,10 +101,9 @@ fi
 LMS=false
 [ -d ${PROJECTDIR}/lms/htdocs ] && LMS=true
 
-PROJECT=$(basename ${PROJECTDIR})
 PROJECTDIR="/var/www/${PROJECT}"
 
-[ $LMS == true ] && WEBROOT=${PROJECTDIR}/lms/htdocs || WEBROOT=${PROJECTDIR}/web
+[ $LMS == true ] && WEBROOT=${PROJECTDIR}/lms/htdocs || WEBROOT=${PROJECTDIR}/public
 
 if [ ! -f nginx.template.conf ]
 then
@@ -148,6 +161,18 @@ awkOption="
         gsub(/%YUIBASE%/, \"${YUI_BASE}\", \$0); print; next;
     }
 
+    /%UPSTREAM%/ {
+      gsub(/%UPSTREAM%/, \"${UPSTREAM}\", \$0); print; next;
+    }
+
+    /%ERRORLOG%/ {
+        gsub(/%ERRORLOG%/, \"${ERRORLOG}\", \$0); print; next;
+    }
+
+    /%ACCESSLOG%/ {
+        gsub(/%ACCESSLOG%/, \"${ACCESSLOG}\", \$0); print; next;
+    }
+
     { print }
 "
 
@@ -196,4 +221,5 @@ then
 else
     printf "nginx.%s.conf generated.\n\n" ${ENV}
     printf "Run 'larakit restart nginx' for nginx to take effect.\n"
+    printf "Be sure to modify both the template and the config script for your project!\n"
 fi
