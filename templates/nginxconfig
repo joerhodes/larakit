@@ -4,8 +4,9 @@
 #
 
 usage() {
-    printf "\nUsage: ./nginxconfig [environment]\n";
-    printf "\tenvironment\t{docker|dev|stage|prod}\n\n";
+    printf "\n======== Larakit Command Usage ========\n";
+    printf "The command ‘./nginxconfig’ is used to configure NGINX for a Laravel project or an LF2 client.\n";
+    printf "Please make sure you have a valid .env file in the project root to get started with your dream.\n";
     exit
 }
 
@@ -27,6 +28,11 @@ ENV=${APP_ENV:-${ENVIRONMENT}}
 # If environment is "local", make it "docker"
 if [ "$ENV" == "local" ]; then
     ENV="docker"
+fi
+
+# If environment is "local", make it "docker"
+if [ "$ENV" == "production" ]; then
+    ENV="prod"
 fi
 
 # Get domain from application's URL
