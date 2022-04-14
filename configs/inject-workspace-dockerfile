@@ -5,8 +5,9 @@
 # --------------|--------------------
 # p7zip-full    | ddgorder/ddgorder3
 # tcm           | policyprint
+# poppler-utils | mici-modernization
 #####################################
-RUN apt-get install -y p7zip-full tcm
+RUN apt-get install -y p7zip-full tcm poppler-utils
 
 ##########################################################
 # PDFLib for policyprint and student_insurance
