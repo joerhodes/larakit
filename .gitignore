@@ -1,4 +1,5 @@
 .idea
+.DS_Store
 laradock
-configs/environment
+configs/environment*
 configs/docker-compose.aliases.yml

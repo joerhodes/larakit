@@ -79,7 +79,7 @@ updateWorkspace() {
             }
         }" \
         "${LARADOCK_HOME}"/workspace/Dockerfile.bak \
-        > "${LARADOCK_HOME}"/workspace/Dockerfile
+        >"${LARADOCK_HOME}"/workspace/Dockerfile
 
     rm "${LARADOCK_HOME}"/workspace/Dockerfile.bak
 }
@@ -95,7 +95,7 @@ updatePhpFpm() {
     iniFile="${LARADOCK_HOME}/php-fpm/php${version}.ini"
     bakFile="${iniFile}.bak"
     mv "${iniFile}" "${bakFile}"
-    sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"
+    sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" >"${iniFile}"
     rm "${bakFile}"
 
     [ ! -f "${LARAKIT_HOME}"/configs/inject-php-fpm-dockerfile ] && return
@@ -119,7 +119,7 @@ updatePhpFpm() {
             }
         }" \
         "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak \
-        > "${LARADOCK_HOME}"/php-fpm/Dockerfile
+        >"${LARADOCK_HOME}"/php-fpm/Dockerfile
 
     rm "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak
 }
@@ -240,7 +240,7 @@ updateEnvironment() {
     tmpPath="${LARAKIT_HOME}"/configs/environment.tmp
 
     mv "$envPath" "$tmpPath"
-    cat "$tmpPath" | sed "s/PHP_VERSION=.*/PHP_VERSION=$phpVersion/" > $envPath
+    cat "$tmpPath" | sed "s/PHP_VERSION=.*/PHP_VERSION=$phpVersion/" >$envPath
 
     rm "$tmpPath"
 }
@@ -251,6 +251,8 @@ showEnvironment() {
 
 resetEnvironment() {
     {
+        cp "${LARAKIT_HOME}"/configs/environment "${LARAKIT_HOME}"/config/environment.bak
+
         printf "# This file overrides the features enabled in the various Laradock containers.\n"
         printf "# So changing any value or adding values requires that the containers be rebuilt.\n"
         printf "#\n"
@@ -271,7 +273,7 @@ resetEnvironment() {
         printf "PHP_VERSION=%s\n" "8.0"
         printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx redis}"
         printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm}"
-    } > "${LARAKIT_HOME}"/configs/environment
+    } >"${LARAKIT_HOME}"/configs/environment
 }
 
 imageVersionExists() {
@@ -281,8 +283,7 @@ imageVersionExists() {
 
     nServices=0
     nImages=0
-    for service in $PHP_SERVICES
-    do
+    for service in $PHP_SERVICES; do
         nServices=$((nServices + 1))
         image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "$service" | grep "$version")
         [ -n "${image}" ] && {
@@ -298,8 +299,7 @@ imageUntagVersion() {
 
     source "${LARAKIT_HOME}"/configs/environment
 
-    for service in $PHP_SERVICES
-    do
+    for service in $PHP_SERVICES; do
         image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "$service" | grep "$version")
         [ -n "$image" ] && docker rmi "$image"
     done
@@ -311,11 +311,10 @@ imageTagVersion() {
 
     source "${LARAKIT_HOME}"/configs/environment
 
-    for service in $PHP_SERVICES
-    do
-        image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "$service" | grep "$sourceTag")
-        newImage=$(echo "$image" | cut -d: -f1)
-        [ -n "$image" ] && docker tag "$image" "$newImage:$newTag"
+    for service in ${PHP_SERVICES}; do
+        image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "${service}" | grep "${sourceTag}")
+        newImage=$(echo "${image}" | cut -d: -f1)
+        [ -n "${image}" ] && docker tag "${image}" "${newImage}:${newTag}"
     done
 }
 
@@ -326,8 +325,7 @@ buildPhpVersion() {
 
     source "${LARAKIT_HOME}"/configs/environment
 
-    for line in $(cat "${LARAKIT_HOME}"/configs/environment)
-    do
+    for line in $(cat "${LARAKIT_HOME}"/configs/environment); do
         [[ "$line" != *=* ]] && continue
         [[ "$line" == *SERVICES=* ]] && continue
 
@@ -364,8 +362,7 @@ changePhpVersion() {
 
     imageVersionExists latest && imageUntagVersion latest
 
-    if imageVersionExists "$newVersion"
-    then
+    if imageVersionExists "$newVersion"; then
         imageTagVersion "$newVersion" latest
     else
         buildPhpVersion "$newVersion"
@@ -453,8 +450,7 @@ loadAllProjectHostnames() {
     projecthosts=''
     cwd=$(pwd)
 
-    for file in $(find "$SITESDIR" -type f -name .env)
-    do
+    for file in $(find "$SITESDIR" -type f -name .env); do
         [[ $file == *"larakit"* ]] && {
             continue
         }
@@ -476,7 +472,7 @@ getNginxAliases() {
     [ "$aliases" = 'null' ] && {
         aliases=''
     }
-    
+
     echo $aliases
 }
 
@@ -539,8 +535,6 @@ reset() {
     touch "$COMPOSE_ALIASES"
     aliases="[]" yq e -iP '.services.nginx.networks.backend.aliases = env(aliases)' "$COMPOSE_ALIASES" 2>/dev/null
 }
-
-
 
 checkDependencies
 
