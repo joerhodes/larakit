@@ -10,13 +10,13 @@
 RUN apt-get install -y p7zip-full tcm poppler-utils
 
 ##########################################################
-# PDFLib for policyprint and student_insurance
+# PDFLib for and student_insurance
 #
 # https://www.pdflib.com/download/pdflib-product-family/
 ##########################################################
 
 RUN set -eux;  \
-    if [ "${LARADOCK_PHP_VERSION}" != '5.6' ]; then \
+    if [ "${LARADOCK_PHP_VERSION}" >= '7.4' ]; then \
         cd /tmp;  \
         PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/931/PDFlib-9.3.1p5-Linux-aarch64-php.tar.gz; \
         if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1000/PDFlib-10.0.0p1-Linux-x64-php.tar.gz ; fi; \
@@ -31,3 +31,14 @@ RUN set -eux;  \
         rm -r pdflib; \
         rm pdflib.tar.gz; \
     fi
+
+##########################################################
+# PCOV for PHP 8.*
+#
+##########################################################
+
+RUN if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+      pecl install pcov && \
+      echo "extension=pcov.so" >> /etc/php/${LARADOCK_PHP_VERSION}/cli/php.ini && \
+      echo "pcov.enabled" >> /etc/php/${LARADOCK_PHP_VERSION}/cli/php.ini \
+;fi
