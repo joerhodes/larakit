@@ -262,6 +262,7 @@ resetEnvironment() {
         printf "#\n"
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
         printf "WORKSPACE_INSTALL_AST=false\n"
+        printf "WORKSPACE_INSTALL_DOCKER_CLIENT=true\n"
         printf "WORKSPACE_INSTALL_IMAGEMAGICK=true\n"
         printf "WORKSPACE_INSTALL_LDAP=true\n"
         printf "WORKSPACE_INSTALL_SOAP=true\n"
