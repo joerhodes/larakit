@@ -421,7 +421,10 @@ checkDependencies() {
         }
     }
 
-    [ ! -f "$COMPOSE_ALIASES" ] && touch "$COMPOSE_ALIASES"
+    [ ! -f "$COMPOSE_ALIASES" ] && {
+        touch "$COMPOSE_ALIASES"
+        aliases="[]" yq e -iP '.services.nginx.networks.backend.aliases = env(aliases)' "$COMPOSE_ALIASES" 2>/dev/null
+    }
 
     [ ! -f "${LARAKIT_HOME}/configs/environment" ] && resetEnvironment
 }
