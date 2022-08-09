@@ -66,9 +66,17 @@ updateWorkspace() {
 
     mv "${LARADOCK_HOME}"/workspace/Dockerfile "${LARADOCK_HOME}"/workspace/Dockerfile.bak
 
-    awk "BEGIN { nearEnd=0; }
+    awk "BEGIN { nearEnd=0; atStart=1; }
         /Final Touch/ { nearEnd=1; }
         {
+            if (atStart && (\$0 ~ /apt-get update -yqq/)) {
+                print \"    apt-get clean && \\\\\";
+                print \"    apt-get autoclean && \\\\\";
+                print \"    rm -rf /var/lib/apt/lists/ && \\\\\";
+                print \"    apt update && \\\\\";
+                atStart=0;
+            }
+
             if (!nearEnd || (\$0 !~ /USER root/)) {
                 print;
             } else {
@@ -98,6 +106,16 @@ updatePhpFpm() {
     sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" >"${iniFile}"
     rm "${bakFile}"
 
+#    PHP_VERSION=8.1
+#    [ -n "${PHP_VERSION}" ] && {
+#        version=${PHP_VERSION}
+#        iniFile="${LARADOCK_HOME}/php-fpm/php${version}.ini"
+#        bakFile="${iniFile}.bak"
+#        mv "${iniFile}" "${bakFile}"
+#        sed 's/^memory_limit = 256M/memory_limit = 1024M/' "${bakFile}" >"${iniFile}"
+#        rm "${bakFile}"
+#    }
+
     [ ! -f "${LARAKIT_HOME}"/configs/inject-php-fpm-dockerfile ] && return
 
     inject=$(cat "${LARAKIT_HOME}/configs/inject-php-fpm-dockerfile")
@@ -106,9 +124,17 @@ updatePhpFpm() {
 
     mv "${LARADOCK_HOME}"/php-fpm/Dockerfile "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak
 
-    awk "BEGIN { nearEnd=0; }
+    awk "BEGIN { nearEnd=0; atStart=1; }
         /Final Touch/ { nearEnd=1; }
         {
+            if (atStart && (\$0 ~ /apt-get update -yqq/)) {
+                print \"    apt-get clean && \\\\\";
+                print \"    apt-get autoclean && \\\\\";
+                print \"    rm -rf /var/lib/apt/lists/ && \\\\\";
+                print \"    apt update && \\\\\";
+                atStart=0;
+            }
+
             if (!nearEnd || (\$0 !~ /USER root/)) {
                 print;
             } else {
@@ -315,7 +341,7 @@ imageTagVersion() {
     for service in ${PHP_SERVICES}; do
         image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "${service}" | grep "${sourceTag}")
         newImage=$(echo "${image}" | cut -d: -f1)
-        [ -n "${image}" ] && docker tag "${image}" "${newImage}:${newTag}"
+        [ -n "${image}" ] && docker tag "${image}" "${newImage}":"${newTag}"
     done
 }
 
