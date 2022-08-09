@@ -107,13 +107,12 @@ updatePhpFpm() {
     sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"
     rm "${bakFile}"
 
-    [ -n "${PHP_MEMORY_LIMIT}" ] && {
-        for iniFile in "${LARADOCK_HOME}/php-fpm/"php*.ini; do
-            bakFile="${iniFile}.bak"
-            mv "${iniFile}" "${bakFile}"
-            sed 's/^memory_limit = .*/memory_limit = '${PHP_MEMORY_LIMIT}'/' "${bakFile}" > "${iniFile}"
-            rm "${bakFile}"
-        done
+    [ -n "${LARAVEL_MEMORY_LIMIT}" ] && {
+        iniFile="${LARADOCK_HOME}/php-fpm/laravel.ini"
+        bakFile="${iniFile}.bak"
+        mv "${iniFile}" "${bakFile}"
+        sed 's/^memory_limit = .*/memory_limit = '${LARAVEL_MEMORY_LIMIT}'/' "${bakFile}" > "${iniFile}"
+        rm "${bakFile}"
     }
 
     [ ! -f "${LARAKIT_HOME}"/configs/inject-php-fpm-dockerfile ] && return
@@ -288,7 +287,7 @@ resetEnvironment() {
         printf "#\n"
         printf "# NOTE:\n"
         printf "#     If PHP needs more memory in the php-fpm container, \n"
-        printf "#     add PHP_MEMORY_LIMIT with the value needed.\n"
+        printf "#     add LARAVEL_MEMORY_LIMIT with the value needed.\n"
         printf "#\n"
         printf "APP_CODE_PATH_HOST=\"%s\"\n" "${APP_CODE_PATH_HOST:-~/Sites}"
         printf "WORKSPACE_INSTALL_AST=false\n"
