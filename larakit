@@ -375,7 +375,7 @@ changePhpVersion() {
     newVersion=$1
 
     case "${newVersion}" in
-    5.6 | 7.2 | 7.3 | 7.4 | 8.0 | 8.1) ;;
+    5.6 | 7.2 | 7.3 | 7.4 | 8.0 | 8.1 | 8.2) ;;
 
     *)
         printf "Invalid PHP version!  Use of one 7.2, 7.3, 7.4, 8.0, 8.1 or 5.6 (if desperate)\n"
