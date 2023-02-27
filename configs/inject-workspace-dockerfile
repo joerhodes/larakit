@@ -18,8 +18,8 @@ RUN apt-get install -y p7zip-full tcm poppler-utils
 RUN set -eux;  \
     if [ ${LARADOCK_PHP_VERSION} = "7.4" ] || [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
         cd /tmp;  \
-        PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/931/PDFlib-9.3.1p5-Linux-aarch64-php.tar.gz; \
-        if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1000/PDFlib-10.0.0p1-Linux-x64-php.tar.gz ; fi; \
+        PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1001/PDFlib-10.0.1-Linux-aarch64-php.tar.gz; \
+        if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1001/PDFlib-10.0.1-Linux-x64-php.tar.gz ; fi; \
         curl -L -o pdflib.tar.gz $PDFLIB_URL; \
         tar -xzf pdflib.tar.gz; \
         mv PDFlib-* pdflib; \
@@ -31,14 +31,3 @@ RUN set -eux;  \
         rm -r pdflib; \
         rm pdflib.tar.gz; \
     fi
-
-##########################################################
-# PCOV for PHP 8.*
-#
-##########################################################
-
-RUN if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
-      pecl install pcov && \
-      echo "extension=pcov.so" >> /etc/php/${LARADOCK_PHP_VERSION}/cli/php.ini && \
-      echo "pcov.enabled" >> /etc/php/${LARADOCK_PHP_VERSION}/cli/php.ini \
-;fi
