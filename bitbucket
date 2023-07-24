@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+
+# larakit configuration
+PROJECTDIR=$(pwd)
+SITESDIR="${HOME}/Sites"
+LARAKIT_HOME=$(dirname "${BASH_SOURCE[0]}")
+LARADOCK_HOME="${LARAKIT_HOME}/laradock"
+BUILDER=bitbucket-builder
+
+updateEnvironment() {
+    phpVersion=$1
+
+    envPath="${LARAKIT_HOME}"/configs/environment
+    tmpPath="${LARAKIT_HOME}"/configs/environment.tmp
+
+    mv "$envPath" "$tmpPath"
+    cat "$tmpPath" | sed "s/PHP_VERSION=.*/PHP_VERSION=$phpVersion/" >$envPath
+
+    rm "$tmpPath"
+}
+
+updateWorkspace() {
+    cwd=$(pwd)
+    cd "$LARADOCK_HOME"
+    git checkout -- workspace
+    cd "$cwd"
+
+    [ ! -f "${LARAKIT_HOME}"/configs/inject-workspace-dockerfile ] && return
+
+    inject=$(cat "${LARAKIT_HOME}/configs/inject-workspace-dockerfile")
+
+    [ -z "$inject" ] && return
+
+    mv "${LARADOCK_HOME}"/workspace/Dockerfile "${LARADOCK_HOME}"/workspace/Dockerfile.bak
+
+    awk "BEGIN { nearEnd=0; atStart=1; }
+        /Final Touch/ { nearEnd=1; }
+        {
+            if (atStart && (\$0 ~ /apt-get update -yqq/)) {
+                print \"    apt-get clean && \\\\\";
+                print \"    apt-get autoclean && \\\\\";
+                print \"    rm -rf /var/lib/apt/lists/ && \\\\\";
+                print \"    apt update && \\\\\";
+                atStart=0;
+            }
+
+            if (!nearEnd || (\$0 !~ /USER root/)) {
+                print;
+            } else {
+                print;
+                print \"\";
+                system(\"cat '${LARAKIT_HOME}/configs/inject-workspace-dockerfile'\");
+                print \"\";
+            }
+        }" \
+        "${LARADOCK_HOME}"/workspace/Dockerfile.bak \
+        >"${LARADOCK_HOME}"/workspace/Dockerfile
+
+    rm "${LARADOCK_HOME}"/workspace/Dockerfile.bak
+}
+
+getBuildArgs() {
+    version=$1
+
+    buildArgs="--build-arg PHP_VERSION=${version} --build-arg LARADOCK_PHP_VERSION=${version}"
+
+    for setting in $(awk '/^WORKSPACE_/ { gsub(/^WORKSPACE_/, ""); print }' "${LARADOCK_HOME}/.env"); do
+        [ -z "${setting}" ] && break
+
+        variable=$(echo "${setting}" | cut -d= -f1)
+        override=$(grep "^WORKSPACE_${variable}" "${LARAKIT_HOME}/configs/environment")
+        [ -n "${override}" ] && setting=$(echo "${override}" | awk '{ gsub(/^WORKSPACE_/, ""); print }')
+
+        buildArgs="${buildArgs} --build-arg ${setting}"
+    done
+
+   echo "${buildArgs}"
+}
+
+builderCleanup() {
+    exists=$(docker buildx ls | grep "${BUILDER}")
+    [ -z "${exists}" ] && return 0
+
+    echo "Removing docker builder ${BUILDER}"
+    docker buildx stop ${BUILDER}
+    docker buildx rm ${BUILDER}
+}
+
+builderCreate() {
+    echo "Creating docker builder ${BUILDER}"
+    docker buildx create --name "${BUILDER}" --driver docker-container --bootstrap
+    docker buildx use "${BUILDER}"
+}
+
+build() {
+    version=$1
+    echo "Building image fusemindinc/laradock-workspace:latest-${version}"
+    buildArgs=$(getBuildArgs $version)
+
+set -x
+    docker buildx build \
+        --platform linux/amd64 \
+        ${buildArgs} \
+        -t fusemindinc/laradock-workspace:latest-${version} \
+        --push \
+        "${LARADOCK_HOME}/workspace"
+    status=$?
+set +x
+
+    [ $status != 0 ] && return $status
+
+    # clean up local image after push
+}
+
+# docker buildx create --name mybuilder --driver docker-container --bootstrap
+# docker buildx use mybuilder
+# docker buildx --platform linux/amd64 {args} -t fusemindinc/laradock-workspace:latest-8.1 --push
+# docker buildx stop mybuilder
+# docker buildx rm mybuilder
+
+# main starts here
+version=8.1
+
+builderCleanup || exit 1
+
+builderCreate || exit 1
+
+updateEnvironment $version
+
+updateWorkspace || exit 1
+
+build $version || exit 1
+
+builderCleanup || exit 1
