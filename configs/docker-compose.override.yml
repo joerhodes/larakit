@@ -14,3 +14,8 @@ services:
   php-worker:
     volumes:
       - ~/SitesHome:/home2
+  sftpserver:
+    image: emberstack/sftp
+    networks:
+      - backend
+
