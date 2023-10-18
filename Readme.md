@@ -70,3 +70,11 @@ Our team use **Postgres.app** for local development databases. For testing with 
 1. Specify your new server's **Name** (such as `Test Server`) and a different **Port** (such as `5433`), then click **Create Server**.
 
 If your project runs on Laravel, just edit the `.env.testing` file and set the `DB_PORT` key to the correct port (such as `5433`). Now you can run PHPUnit with this dedicated test server.
+
+## SFTP Testing
+
+If you need to test SFTP connection and file transfers, add the `sftpservice` to your list of 
+default services in your `configs/environment` file.  This service provides an SFTP server that
+is available as the host `sftpserver` with a username / password of `demo` / `demo`.  More information
+about this service can be found here https://hub.docker.com/r/emberstack/sftp.
+
