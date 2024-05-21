@@ -2,4 +2,5 @@
 .DS_Store
 laradock
 configs/environment*
+!configs/environment.example
 configs/docker-compose.aliases.yml
