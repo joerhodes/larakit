@@ -1,0 +1,34 @@
+# This file overrides the features enabled in the various Laradock containers.
+# So changing any value or adding values requires that the containers be rebuilt.
+#
+# The following command will remove all laradock workspace containers to force a rebuild.
+#
+# docker rmi -f $(docker images 'laradock*' -q)
+#
+# NOTE:
+#     If PHP needs more memory in the php-fpm container, 
+#     add LARAVEL_MEMORY_LIMIT with the value needed.
+#
+APP_CODE_PATH_HOST="/Users/example.user/Sites"
+WORKSPACE_INSTALL_AST=false
+WORKSPACE_INSTALL_DOCKER_CLIENT=true
+WORKSPACE_INSTALL_IMAGEMAGICK=true
+WORKSPACE_INSTALL_LDAP=true
+WORKSPACE_INSTALL_PCOV=true
+WORKSPACE_INSTALL_SOAP=true
+WORKSPACE_INSTALL_SSHPASS=true
+WORKSPACE_INSTALL_WORKSPACE_SSH=true
+WORKSPACE_INSTALL_PHPREDIS=true
+WORKSPACE_INSTALL_PG_CLIENT=true
+PHP_FPM_INSTALL_AST=false
+PHP_FPM_INSTALL_IMAGEMAGICK=true
+PHP_FPM_INSTALL_LDAP=false
+PHP_FPM_INSTALL_PGSQL=true
+PHP_FPM_INSTALL_SSHPASS=true
+PHP_FPM_INSTALL_SOAP=true
+PHP_FPM_INSTALL_PHPREDIS=true
+POSTGRES_CLIENT_VERSION=16
+PHP_VERSION=8.2
+LARAVEL_MEMORY_LIMIT=1024M
+DEFAULT_SERVICES="nginx redis sftpserver"
+PHP_SERVICES="workspace php-fpm"
