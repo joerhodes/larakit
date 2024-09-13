@@ -3,11 +3,16 @@
 #
 # Package added | For Project
 # --------------|--------------------
-# p7zip-full    | ddgorder/ddgorder3
 # tcm           | policyprint
 # poppler-utils | mici-modernization
+#
+# Legacy packages no longer included
+# Package added | For Project
+# --------------|--------------------
+# p7zip-full    | ddgorder/ddgorder3
+#
 #####################################
-RUN apt-get install -y p7zip-full tcm poppler-utils
+RUN apt-get install -y tcm poppler-utils
 
 ##########################################################
 # PDFLib for and student_insurance
@@ -18,8 +23,8 @@ RUN apt-get install -y p7zip-full tcm poppler-utils
 RUN set -eux;  \
     if [ ${LARADOCK_PHP_VERSION} = "7.4" ] || [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
         cd /tmp;  \
-        PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1001/PDFlib-10.0.1-Linux-aarch64-php.tar.gz; \
-        if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1001/PDFlib-10.0.1-Linux-x64-php.tar.gz ; fi; \
+        PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-aarch64-php.tar.gz; \
+        if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-x64-php.tar.gz ; fi; \
         curl -L -o pdflib.tar.gz $PDFLIB_URL; \
         tar -xzf pdflib.tar.gz; \
         mv PDFlib-* pdflib; \
