@@ -78,3 +78,22 @@ default services in your `configs/environment` file.  This service provides an S
 is available as the host `sftpserver` with a username / password of `demo` / `demo`.  More information
 about this service can be found here https://hub.docker.com/r/emberstack/sftp.
 
+## Upgrading
+
+The follow steps outline the procedure to follow with upgrading Larakit to a new version. 
+Some of these steps may take a moment = be patient.
+
+```shell
+cd ~/Sites/larakit
+larakit down
+git fetch
+git checkout NEW_TAG
+docker rmi -f $(docker images 'laradock*' -q)
+docker image prune -f
+docker container prune -f
+docker buildx prune -f 
+docker volume prune -f
+larakit laradock update
+larakit switch PHP_VERSION
+larakit up
+```
