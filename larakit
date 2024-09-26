@@ -276,7 +276,7 @@ showEnvironment() {
 
 resetEnvironment() {
     {
-        cp "${LARAKIT_HOME}"/configs/environment "${LARAKIT_HOME}"/config/environment.bak
+        cp "${LARAKIT_HOME}"/configs/environment "${LARAKIT_HOME}"/configs/environment.bak
 
         printf "# This file overrides the features enabled in the various Laradock containers.\n"
         printf "# So changing any value or adding values requires that the containers be rebuilt.\n"
