@@ -18,3 +18,8 @@ RUN set -eux;  \
         rm -r pdflib; \
         rm pdflib.tar.gz; \
     fi
+
+###########################################################################
+# Copy the version specific PHP ini in case there are any changes
+###########################################################################
+COPY ./php${LARADOCK_PHP_VERSION}.ini /usr/local/etc/php/

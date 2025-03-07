@@ -93,6 +93,7 @@ docker image prune -f
 docker container prune -f
 docker buildx prune -f 
 docker volume prune -f
+docker system prune -a
 larakit laradock update
 larakit switch PHP_VERSION
 larakit up
