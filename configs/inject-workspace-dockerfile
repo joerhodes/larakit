@@ -1,9 +1,9 @@
 #####################################
 # NOTE:
-#   We should only have one Docker 'RUN' statements in this file
-#   to limit the number of layers that we add.   The base Dockerfile
-#   already consume almost all of the available available layes.
-#   Number of layers is currently limited to 125.
+#   We should only have one Docker 'RUN' statement in this file
+#   to limit the number of layers that we add.  The base Dockerfile
+#   already consumes almost all of the available layes. The number
+#   of layers is currently limited to 125.
 #####################################
 # Add extra debian/ubuntu packages
 #
