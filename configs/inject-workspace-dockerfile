@@ -1,4 +1,10 @@
 #####################################
+# NOTE:
+#   We should only have one Docker 'RUN' statement in this file
+#   to limit the number of layers that we add.  The base Dockerfile
+#   already consumes almost all of the available layes. The number
+#   of layers is currently limited to 125.
+#####################################
 # Add extra debian/ubuntu packages
 #
 # Package added | For Project
@@ -11,16 +17,14 @@
 # --------------|--------------------
 # p7zip-full    | ddgorder/ddgorder3
 #
-#####################################
-RUN apt-get install -y tcm poppler-utils
-
-##########################################################
 # PDFLib for and student_insurance
 #
 # https://www.pdflib.com/download/pdflib-product-family/
-##########################################################
-
-RUN set -eux;  \
+#
+# Enable short open tags for PHP 5.6
+#####################################
+RUN apt-get install -y tcm poppler-utils; \
+    set -eux;  \
     if [ ${LARADOCK_PHP_VERSION} = "7.4" ] || [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
         cd /tmp;  \
         PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-aarch64-php.tar.gz; \
@@ -35,4 +39,11 @@ RUN set -eux;  \
         ln -s /etc/php/${LARADOCK_PHP_VERSION}/mods-available/pdflib.ini /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/20-pdflib.ini; \
         rm -r pdflib; \
         rm pdflib.tar.gz; \
+    fi; \
+    if [ ${LARADOCK_PHP_VERSION} = "5.6" ] ; then \
+        iniFile="/etc/php/${LARADOCK_PHP_VERSION}/cli/php.ini"; \
+        bakFile="${iniFile}.bak"; \
+        mv "${iniFile}" "${bakFile}"; \
+        sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"; \
+        rm "${bakFile}"; \
     fi
