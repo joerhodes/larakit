@@ -81,14 +81,83 @@ if command -v supervisorctl >/dev/null 2>&1; then
   step "Check supervisorctl status" run_sudo_sh "supervisorctl status || true"
 fi
 
-# 3) PHP-FPM pool configuration
+# 3) PHP-FPM pool configuration (auto-detect version and paths)
 PHP_POOL_SRC="/home/$APP_USER/current/php-fpm.conf"
-PHP_POOL_DST="/etc/php/8.3/fpm/pool.d/$APP_USER.conf"
-step "Verify php-fpm pool file exists at $PHP_POOL_SRC" test -f "$PHP_POOL_SRC"
-step "Copy php-fpm pool to $PHP_POOL_DST" run_sudo_sh "cp '$PHP_POOL_SRC' '$PHP_POOL_DST'"
-step "Validate php-fpm8.3 configuration" run_sudo_sh "php-fpm8.3 -t"
-step "Restart php8.1-fpm service" run_sudo_sh "systemctl restart php8.1-fpm"
-step "Check php8.1-fpm service status" run_sudo_sh "systemctl --no-pager --full status php8.1-fpm"
+
+# Detect PHP version from CLI if available, else from php-fpm binary
+PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true)"
+if [ -z "$PHP_VER" ]; then
+  PHP_VER="$(php-fpm -v 2>/dev/null | sed -n 's/^PHP \([0-9]\+\.[0-9]\+\).*/\1/p' | head -n1 || true)"
+fi
+
+# Determine PHP-FPM pool directory
+POOL_DIR=""
+if [ -n "$PHP_VER" ] && [ -d "/etc/php/$PHP_VER/fpm/pool.d" ]; then
+  POOL_DIR="/etc/php/$PHP_VER/fpm/pool.d"
+elif [ -d "/etc/php-fpm.d" ]; then
+  # RHEL/AlmaLinux layout
+  POOL_DIR="/etc/php-fpm.d"
+else
+  CAND=$(ls -d /etc/php/*/fpm/pool.d 2>/dev/null | head -n1 || true)
+  if [ -n "$CAND" ]; then POOL_DIR="$CAND"; fi
+fi
+
+if [ -z "$POOL_DIR" ]; then
+  echo "[fail] Could not detect PHP-FPM pool directory (checked /etc/php/<ver>/fpm/pool.d and /etc/php-fpm.d)" >&2
+  FAIL=1
+else
+  PHP_POOL_DST="$POOL_DIR/$APP_USER.conf"
+  step "Verify php-fpm pool file exists at $PHP_POOL_SRC" test -f "$PHP_POOL_SRC"
+  step "Copy php-fpm pool to $PHP_POOL_DST" run_sudo_sh "cp '$PHP_POOL_SRC' '$PHP_POOL_DST'"
+
+  # Find a php-fpm test command
+  FPM_TEST=""
+  for c in "php-fpm$PHP_VER" php-fpm php-fpm8.3 php-fpm8.2 php-fpm8.1; do
+    if command -v "$c" >/dev/null 2>&1; then FPM_TEST="$c -t"; break; fi
+  done
+  if [ -n "$FPM_TEST" ]; then
+    step "Validate php-fpm configuration" run_sudo_sh "$FPM_TEST"
+  else
+    # Last resort: try common test patterns without failing the whole flow here
+    step "Validate php-fpm configuration (best effort)" run_sudo_sh "php-fpm -t || php-fpm$PHP_VER -t || true"
+  fi
+
+  # Determine systemd service name (robustly)
+  SERVICE=""
+  # Prefer exact matches from systemd unit files
+  for s in "php$PHP_VER-fpm" php-fpm php8.3-fpm php8.2-fpm php8.1-fpm; do
+    if run_sudo_sh "systemctl list-unit-files --type=service --all | awk '{print \$1}' | grep -Fxq '$s.service'"; then
+      SERVICE="$s"; break
+    fi
+  done
+  # Infer from filesystem layout if still unknown
+  if [ -z "$SERVICE" ]; then
+    if [ -n "${PHP_VER:-}" ] && [ -d "/etc/php/$PHP_VER/fpm" ]; then
+      if run_sudo_sh "systemctl list-unit-files --type=service --all | awk '{print \$1}' | grep -Fxq 'php$PHP_VER-fpm.service'"; then
+        SERVICE="php$PHP_VER-fpm"
+      fi
+    elif [ -d "/etc/php-fpm.d" ]; then
+      if run_sudo_sh "systemctl list-unit-files --type=service --all | awk '{print \$1}' | grep -Fxq 'php-fpm.service'"; then
+        SERVICE="php-fpm"
+      fi
+    fi
+  fi
+  # As a last resort, pick any php*-fpm service if present
+  if [ -z "$SERVICE" ]; then
+    CAND=$(run_sudo_sh "systemctl list-unit-files --type=service --all | awk '{print \$1}' | grep -E '^php([0-9]+\\.[0-9]+)?-fpm\\.service$' | head -n1" || true)
+    if [ -n "$CAND" ]; then
+      SERVICE="${CAND%.service}"
+    fi
+  fi
+
+  if [ -n "$SERVICE" ]; then
+    step "Restart $SERVICE service" run_sudo_sh "systemctl restart '$SERVICE'"
+    step "Check $SERVICE service status" run_sudo_sh "systemctl --no-pager --full status '$SERVICE'"
+  else
+    echo "[fail] Could not identify a php-fpm systemd service to restart (tried php$PHP_VER-fpm, php-fpm, and scanned installed services)." >&2
+    FAIL=1
+  fi
+fi
 
 # 4) Nginx site configuration
 # Detect ENV from available nginx.ENV.conf files (prefer production, then stage, then dev)
