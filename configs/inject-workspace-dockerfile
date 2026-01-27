@@ -23,12 +23,17 @@
 #
 # Enable short open tags for PHP 5.6
 #####################################
-RUN apt-get install -y tcm poppler-utils; \
+RUN apt-get install -y tcm poppler-utils ca-certificates curl gnupg lsb-release; \
     set -eux;  \
     if [ ${LARADOCK_PHP_VERSION} = "7.4" ] || [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
         cd /tmp;  \
-        PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-aarch64-php.tar.gz; \
-        if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-x64-php.tar.gz ; fi; \
+        if [ $(php -r "echo PHP_MINOR_VERSION;") -le 3 ]; then \
+            PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-aarch64-php.tar.gz; \
+            if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-x64-php.tar.gz ; fi; \
+        else \
+            PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1100/PDFlib-11.0.0-Linux-aarch64-php.tar.gz; \
+            if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1100/PDFlib-11.0.0-Linux-x64-php.tar.gz; fi; \
+        fi; \
         curl -L -o pdflib.tar.gz $PDFLIB_URL; \
         tar -xzf pdflib.tar.gz; \
         mv PDFlib-* pdflib; \
@@ -46,4 +51,28 @@ RUN apt-get install -y tcm poppler-utils; \
         mv "${iniFile}" "${bakFile}"; \
         sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"; \
         rm "${bakFile}"; \
+    fi; \
+    mkdir -m 0755 -p /etc/apt/keyrings; \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg; \
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+      https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" \
+      > /etc/apt/sources.list.d/docker.list; \
+    apt-get update; \
+    apt-get install -y docker-ce-cli; \
+    # Disable default buildx attestations (prevents OCI index + attestation-manifest that Lambda can reject)
+    if [ -x /usr/bin/docker ]; then \
+        mkdir -p /usr/local/bin; \
+        if [ -e /usr/local/bin/docker ] && [ ! -L /usr/local/bin/docker ]; then \
+            mv /usr/local/bin/docker /usr/local/bin/docker.laradock.bak; \
+        fi; \
+        ln -sf /usr/bin/docker /usr/local/bin/docker; \
+    fi; \
+    # Make BUILDX_NO_DEFAULT_ATTESTATIONS available in `docker exec -it ... bash`
+    echo 'export BUILDX_NO_DEFAULT_ATTESTATIONS=1' >> /etc/bash.bashrc; \
+    echo 'export BUILDX_NO_DEFAULT_ATTESTATIONS=1' >> /root/.bashrc; \
+    if [ -d /home/laradock ]; then \
+        echo 'export BUILDX_NO_DEFAULT_ATTESTATIONS=1' >> /home/laradock/.bashrc; \
+        chown laradock:laradock /home/laradock/.bashrc || true; \
     fi
