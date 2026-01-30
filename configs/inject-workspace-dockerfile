@@ -25,7 +25,7 @@
 #####################################
 RUN apt-get install -y tcm poppler-utils ca-certificates curl gnupg lsb-release; \
     set -eux;  \
-    if [ ${LARADOCK_PHP_VERSION} = "7.4" ] || [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
         cd /tmp;  \
         if [ $(php -r "echo PHP_MINOR_VERSION;") -le 3 ]; then \
             PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-aarch64-php.tar.gz; \
