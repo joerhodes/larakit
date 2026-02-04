@@ -15,6 +15,7 @@ usage() {
     printf "    laradock install        Install Laradock.\n"
     printf "    laradock update         Pull down latest Laradock updates.\n"
     printf "    laradock config         Copy custom config files to Laradock.\n"
+    printf "    dnsCheck                Run a test to check if containers can resolve DNS correctly.\n"
     printf "    env [reset]             [Reset and] show the values used for container building.\n"
     printf "    exec command [arg...]   Run a command in the workspace container.\n"
     printf "    run command [arg...]    Launch the workspace container and run the command.\n"
@@ -466,6 +467,49 @@ checkDependencies() {
     [ ! -f "${LARAKIT_HOME}/configs/environment" ] && resetEnvironment
 }
 
+dnsPreflight() {
+    # Allow opt-out:
+    #   LARAKIT_SKIP_PREFLIGHT=1 larakit up
+    [ "${LARAKIT_SKIP_PREFLIGHT:-0}" = "1" ] && return 0
+
+    # If Docker isn't up, skip (existing commands will fail anyway)
+    docker info >/dev/null 2>&1 || return 0
+
+    # Fast check: can a vanilla container resolve & reach common endpoints?
+    # dl-cdn.alpinelinux.org matches your Vapor/Laradock apk failures.
+    local test_host="dl-cdn.alpinelinux.org"
+    local rc=0
+
+    # Use busybox nslookup; keep it fast with -t timeout on docker run.
+    docker run --rm -t alpine:3.23 sh -lc "nslookup ${test_host} >/dev/null 2>&1" || rc=$?
+
+    if [ $rc -ne 0 ]; then
+        printf "\n[larakit] Docker container DNS preflight FAILED.\n"
+        printf "[larakit] A test container could not resolve: %s\n\n" "$test_host"
+
+        # Print resolver info from inside a container (super helpful when debugging)
+        printf "---- container /etc/resolv.conf ----\n"
+        docker run --rm alpine:3.23 sh -lc "cat /etc/resolv.conf || true"
+        printf "-----------------------------------\n\n"
+
+        printf "Common cause: Docker Desktop DNS forwarding breaks when VPN status changes.\n\n"
+        printf "Fix options:\n"
+        printf "  1) Restart Docker Desktop (quick workaround).\n"
+        printf "  2) Ensure Docker Desktop -> Settings -> Docker Engine uses dnsmasq on the host.\n"
+        printf "     - Find host IP from a container:\n"
+        printf "         docker run --rm alpine:3.23 sh -lc 'nslookup host.docker.internal'\n"
+        printf "     - Set Docker Engine JSON:\n"
+        printf "         \"dns\": [\"<reported IP>\"]\n\n"
+        printf "To bypass this check:\n"
+        printf "  LARAKIT_SKIP_PREFLIGHT=1 larakit <command>\n\n"
+
+        exit 2
+    fi
+
+    printf "\nDNS preflight check successful!\n"
+    return 0
+}
+
 loadProjectHostname() {
     VHOST_NAME=''
 
@@ -598,6 +642,10 @@ help)
 
 laradock)
     laradockCommand $*
+    ;;
+
+dnsCheck)
+    dnsPreflight
     ;;
 
 env)

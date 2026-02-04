@@ -112,3 +112,14 @@ The file `configs/environment` contains values that are passed to the docker ima
 
 This file also contains the list of services (containers) that are launched with `larakit up`.   A newly created file contains the bare minimum.   It may be necessary to add more though.  One example is adding **beanstalkd** and **beanstalkd-console** to the list of `DEFAULT_SERVICES`.  Note that these service names are defined in the `laradock/docker-compose.yml` file.
 
+## DNS and VPN
+
+Docker Desktop for Mac can have issues resolving DNS when the OpenVPN connection status changes.  To help
+identify if this is a current issue, larakit provides a subcommand to test DNS resolution from inside
+of a container.
+
+    ```
+    larakit dnsCheck
+    ```
+    
+If this fails, go back to [macOS Setup Guide](Instructions.md) and follow all the instructions related to setting up `dnsmasq`.  
