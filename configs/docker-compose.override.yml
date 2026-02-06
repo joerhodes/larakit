@@ -7,12 +7,21 @@ services:
       - ~/.gnupg:/root/.gnupg
     environment:
       - SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "docker.for.mac.host.internal:host-gateway"
   php-fpm:
     volumes:
       - ~/SitesHome:/home2
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "docker.for.mac.host.internal:host-gateway"
   php-worker:
     volumes:
       - ~/SitesHome:/home2
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "docker.for.mac.host.internal:host-gateway"
   sftpserver:
     image: emberstack/sftp
     networks:
