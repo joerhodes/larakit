@@ -10,7 +10,7 @@ COMPOSE_ALIASES="${LARAKIT_HOME}/configs/docker-compose.aliases.yml"
 COMPOSE_CONFIGS="-f docker-compose.yml -f ${COMPOSE_OVERRIDES} -f ${COMPOSE_ALIASES}"
 
 usage() {
-    printf "\nUsage: larakit command\n"
+    printf "\nUsage: larakit commands\n"
     printf "    help                    Show this message.\n"
     printf "    laradock install        Install Laradock.\n"
     printf "    laradock update         Pull down latest Laradock updates.\n"
