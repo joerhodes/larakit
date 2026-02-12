@@ -652,10 +652,6 @@ reset)
     reset
     ;;
 
-chkDeps)
-    checkDependencies
-    ;;
-
 *)
     cd "${LARADOCK_HOME}"
     docker compose ${COMPOSE_CONFIGS} $command $*
