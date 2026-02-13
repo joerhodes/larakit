@@ -34,6 +34,91 @@ setup() {
   }
 }
 
+@test "updateEnvironment fails without LARAKIT_HOME" {
+  run updateEnvironment
+  assert_failure
+}
+
+@test "updateEnvironment updates environment" {
+  hasPhpVersion=$(egrep '^PHP_VERSION' "${LARAKIT_HOME}/configs/environment" || echo '')
+  [ -n "${hasPhpVersion}" ] && {
+    cp "${LARAKIT_HOME}/configs/environment" "${LARAKIT_HOME}/configs/environment.save"
+  }
+
+  run updateEnvironment "${LARAKIT_HOME}" 8.2
+  assert_success
+  assert_file_exist "${LARAKIT_HOME}/configs/environment"
+  assert_file_not_empty "${LARAKIT_HOME}/configs/environment"
+  assert [ "$(egrep '^PHP_VERSION' "${LARAKIT_HOME}/configs/environment")" = "PHP_VERSION=8.2" ]
+
+  run updateEnvironment "${LARAKIT_HOME}" 8.4
+  assert_success
+  assert_file_exist "${LARAKIT_HOME}/configs/environment"
+  assert_file_not_empty "${LARAKIT_HOME}/configs/environment"
+  assert [ "$(egrep '^PHP_VERSION' "${LARAKIT_HOME}/configs/environment")" = "PHP_VERSION=8.4" ]
+
+  [ -n "${hasPhpVersion}" ] && {
+    cp "${LARAKIT_HOME}/configs/environment.save" "${LARAKIT_HOME}/configs/environment"
+  }
+}
+
+@test "updateEnvironment removes version specific values" {
+  hasPhpVersion=$(egrep '^PHP_VERSION' "${LARAKIT_HOME}/configs/environment" || echo '')
+  [ -n "${hasPhpVersion}" ] && {
+    cp "${LARAKIT_HOME}/configs/environment" "${LARAKIT_HOME}/configs/environment.save"
+  }
+
+  echo "PHP_FPM_BASE_IMAGE_TAG_PREFIX=20250222" >> "${LARAKIT_HOME}/configs/environment"
+  echo "PHP_FPM_INSTALL_OPCACHE=false" >> "${LARAKIT_HOME}/configs/environment"
+
+  run updateEnvironment "${LARAKIT_HOME}" 8.4
+  assert_success
+  assert_file_exist "${LARAKIT_HOME}/configs/environment"
+  assert_file_not_empty "${LARAKIT_HOME}/configs/environment"
+  refute grep '^PHP_FPM_BASE_IMAGE_TAG_PREFIX' "${LARAKIT_HOME}/configs/environment"
+  refute grep '^PHP_FPM_INSTALL_OPCACHE' "${LARAKIT_HOME}/configs/environment"
+
+  [ -n "${hasPhpVersion}" ] && {
+    cp "${LARAKIT_HOME}/configs/environment.save" "${LARAKIT_HOME}/configs/environment"
+  }
+}
+
+@test "updateEnvironment add image tag for php version 7.4" {
+  hasPhpVersion=$(egrep '^PHP_VERSION' "${LARAKIT_HOME}/configs/environment" || echo '')
+  [ -n "${hasPhpVersion}" ] && {
+    cp "${LARAKIT_HOME}/configs/environment" "${LARAKIT_HOME}/configs/environment.save"
+  }
+
+  run updateEnvironment "${LARAKIT_HOME}" 7.4
+  assert_success
+  assert_file_exist "${LARAKIT_HOME}/configs/environment"
+  assert_file_not_empty "${LARAKIT_HOME}/configs/environment"
+  assert [ "$(egrep '^PHP_FPM_BASE_IMAGE_TAG_PREFIX' "${LARAKIT_HOME}/configs/environment")" = "PHP_FPM_BASE_IMAGE_TAG_PREFIX=20250222" ]
+  refute grep '^PHP_FPM_INSTALL_OPCACHE' "${LARAKIT_HOME}/configs/environment"
+
+  [ -n "${hasPhpVersion}" ] && {
+    cp "${LARAKIT_HOME}/configs/environment.save" "${LARAKIT_HOME}/configs/environment"
+  }
+}
+
+@test "updateEnvironment disables opcache for php version 8.5" {
+  hasPhpVersion=$(egrep '^PHP_VERSION' "${LARAKIT_HOME}/configs/environment" || echo '')
+  [ -n "${hasPhpVersion}" ] && {
+    cp "${LARAKIT_HOME}/configs/environment" "${LARAKIT_HOME}/configs/environment.save"
+  }
+
+  run updateEnvironment "${LARAKIT_HOME}" 8.5
+  assert_success
+  assert_file_exist "${LARAKIT_HOME}/configs/environment"
+  assert_file_not_empty "${LARAKIT_HOME}/configs/environment"
+  assert [ "$(egrep '^PHP_FPM_INSTALL_OPCACHE' "${LARAKIT_HOME}/configs/environment")" = "PHP_FPM_INSTALL_OPCACHE=false" ]
+  refute grep '^PHP_FPM_BASE_IMAGE_TAG_PREFIX' "${LARAKIT_HOME}/configs/environment"
+
+  [ -n "${hasPhpVersion}" ] && {
+    cp "${LARAKIT_HOME}/configs/environment.save" "${LARAKIT_HOME}/configs/environment"
+  }
+}
+
 @test "checkDependency fails without arguments" {
     run checkDependency
     assert_failure

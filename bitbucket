@@ -119,7 +119,7 @@ set +x
 # docker buildx rm mybuilder
 
 # main starts here
-version=8.4
+version=8.5
 
 builderCleanup || exit 1
 

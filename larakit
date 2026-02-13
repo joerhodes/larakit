@@ -26,7 +26,7 @@ usage() {
     printf "    down                    Shutdown Laradock services.\n"
     printf "    ps                      Display running containers.\n"
     printf "    logs                    Display container logs.\n"
-    printf "    switch version          Switch to PHP version: 5.6, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4.\n"
+    printf "    switch version          Switch to PHP version: 5.6, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5.\n"
     printf "    nginx install           Copy nginx config templates to current project.\n"
     printf "    register arg...         Map one or more hostnames into Larakit containers\n"
     printf "    deregister arg...       Remove one of more hostnames from Larakit mapping\n"
@@ -248,18 +248,6 @@ stackRunning() {
     [ -n "${containers}" ]
 }
 
-updateEnvironment() {
-    phpVersion=$1
-
-    envPath="${LARAKIT_HOME}"/configs/environment
-    tmpPath="${LARAKIT_HOME}"/configs/environment.tmp
-
-    mv "$envPath" "$tmpPath"
-    cat "$tmpPath" | sed "s/PHP_VERSION=.*/PHP_VERSION=$phpVersion/" >$envPath
-
-    rm "$tmpPath"
-}
-
 imageVersionExists() {
     version=$1
 
@@ -305,11 +293,12 @@ imageTagVersion() {
 buildPhpVersion() {
     newVersion=$1
 
-    updateEnvironment "$newVersion"
+    updateEnvironment "${LARAKIT_HOME}" "$newVersion"
 
     source "${LARAKIT_HOME}"/configs/environment
 
     for line in $(cat "${LARAKIT_HOME}"/configs/environment); do
+        [[ "$line" == \#* ]] && continue
         [[ "$line" != *=* ]] && continue
         [[ "$line" == *SERVICES=* ]] && continue
 
@@ -329,10 +318,10 @@ changePhpVersion() {
     newVersion=$1
 
     case "${newVersion}" in
-    5.6 | 7.2 | 7.3 | 7.4 | 8.0 | 8.1 | 8.2 | 8.3 | 8.4) ;;
+    5.6 | 7.2 | 7.3 | 7.4 | 8.0 | 8.1 | 8.2 | 8.3 | 8.4 | 8.5) ;;
 
     *)
-        printf "Invalid PHP version!  Use of one 8.4, 8.3, 8.2, 8.1, 7.4, 7.3, 7.2 or 5.6 (if desperate)\n"
+        printf "Invalid PHP version!  Use of one 8.5, 8.4, 8.3, 8.2, 8.1, 7.4, 7.3, 7.2 or 5.6 (if desperate)\n"
         exit
         ;;
     esac
@@ -560,7 +549,7 @@ checkDependencies
 
 # load environment overrides
 [ ! -f "${LARAKIT_HOME}"/configs/environment ] && {
-    updateEnvironment
+    updateEnvironment "${LARAKIT_HOME}"
 }
 source "${LARAKIT_HOME}"/configs/environment
 
