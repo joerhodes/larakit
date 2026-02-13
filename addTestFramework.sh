@@ -8,6 +8,8 @@
 #     https://github.com/bats-core/bats-assert
 
 LARAKIT_HOME="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+BATS_HOME="${LARAKIT_HOME}/tests/bats"
+BATS_HELPER="${LARAKIT_HOME}/tests/helpers"
 CURRENT_DIR="$(pwd -P)"
 
 [ "$CURRENT_DIR" != "$LARAKIT_HOME" ] && {
@@ -29,35 +31,33 @@ installBatsCore() {
     cd "${LARAKIT_HOME}"
 }
 
-installBatsSupport() {
-    [ -f "${LARAKIT_HOME}/tests/helpers/bats-support/load.bash" ] && {
-        printf "bats-support already installed.\n"
+# Install a bats helper under test/helpers
+#     $1 - help name, ie bats-support
+#     $2 - git clone url
+installBatsHelper() {
+    [ $# -ne 2 ] && {
+        printf "invalid call to installBatsHelper!!\n"
+        exit 1
+    }
+
+    module=$1
+    gitUrl=$2
+
+    [ -d "${BATS_HELPER}/${module}" ] && {
+        printf "${module} already installed.\n"
         return 0
     }
 
-    printf "Installing bats-support.\n"
+    printf "Installing ${module}.\n"
 
-    mkdir -p "${LARAKIT_HOME}/tests/helpers/bats-support"
-    cd "${LARAKIT_HOME}/tests/helpers"
-    git clone -q https://github.com/bats-core/bats-support.git bats-support
-    cd "${LARAKIT_HOME}"
-}
-
-installBatsAssert() {
-    [ -f "${LARAKIT_HOME}/tests/helpers/bats-assert/load.bash" ] && {
-        printf "bat-assert already installed.\n"
-        return 0
-    }
-
-    printf "Installing bats-assert.\n"
-
-    mkdir -p "${LARAKIT_HOME}/tests/helpers/bats-assert"
-    cd "${LARAKIT_HOME}/tests/helpers"
-    git clone -q https://github.com/bats-core/bats-assert.git bats-assert
+    mkdir -p "${BATS_HELPER}/${module}"
+    cd "${BATS_HELPER}"
+    git clone -q "${gitUrl}" "${module}"
     cd "${LARAKIT_HOME}"
 }
 
 installBatsCore
-installBatsSupport
-installBatsAssert
-
+installBatsHelper 'bats-support' 'https://github.com/bats-core/bats-support.git'
+installBatsHelper 'bats-assert' 'https://github.com/bats-core/bats-assert.git'
+installBatsHelper 'bats-file' 'https://github.com/bats-core/bats-file.git'
+installBatsHelper 'bats-mock' 'https://github.com/buildkite-plugins/bats-mock.git'
