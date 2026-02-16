@@ -61,6 +61,38 @@ resetEnvironment() {
 }
 
 #
+# updateEnvironment - Update the PHP_VERSION value in the environment
+#     $1 - Directory for Larakit home
+#     $2 - New PHP version value
+#
+updateEnvironment() {
+    [ $# -ne 2 ] && return 1
+
+    larakitHome=$1
+    phpVersion=$2
+
+    envFile="${larakitHome}/configs/environment"
+    tmpFile="${envFile}.tmp"
+
+    mv "${envFile}" "${tmpFile}"
+    cat "${tmpFile}" | \
+        sed -e "s/PHP_VERSION=.*/PHP_VERSION=${phpVersion}/" \
+            -e "/PHP_FPM_BASE_IMAGE_TAG/d" \
+            -e "/PHP_FPM_INSTALL_OPCACHE/d" \
+        > "${envFile}"
+
+    [ "${phpVersion}" = "7.4" ] && {
+        echo "PHP_FPM_BASE_IMAGE_TAG_PREFIX=20250222" >> "${envFile}"
+    }
+
+    [ "${phpVersion}" = "8.5" ] && {
+        echo "PHP_FPM_INSTALL_OPCACHE=false" >> "${envFile}"
+    }
+
+    rm "${tmpFile}"
+}
+
+#
 # checkDependency - Check if a system command is available
 #     $1 - Command to check for
 #     $2 - Message if command is not found
