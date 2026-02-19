@@ -11,6 +11,7 @@ COMPOSE_ALIASES="${LARAKIT_HOME}/configs/docker-compose.aliases.yml"
 COMPOSE_CONFIGS="-f docker-compose.yml -f ${COMPOSE_OVERRIDES} -f ${COMPOSE_ALIASES}"
 
 source "${LARAKIT_LIB}/utils.bash"
+source "${LARAKIT_LIB}/laradock.bash"
 
 usage() {
     printf "\nUsage: larakit commands\n"
@@ -383,10 +384,7 @@ checkDependencies() {
         exit 1
     }
 
-    [ ! -f "$COMPOSE_ALIASES" ] && {
-        touch "$COMPOSE_ALIASES"
-        aliases="[]" yq e -iP '.services.nginx.networks.backend.aliases = env(aliases)' "$COMPOSE_ALIASES" 2>/dev/null
-    }
+    [ ! -f "$COMPOSE_ALIASES" ] && resetAliases "${LARAKIT_HOME}"
 
     [ ! -f "${LARAKIT_HOME}/configs/environment" ] && resetEnvironment "${LARAKIT_HOME}"
 }
@@ -476,31 +474,15 @@ loadAllProjectHostnames() {
     echo $projecthosts
 }
 
-getNginxAliases() {
-    aliases=$(yq e '.services.nginx.networks.backend.aliases[]' "$COMPOSE_ALIASES")
-    [ "$aliases" = 'null' ] && {
-        aliases=''
-    }
-
-    echo $aliases
-}
-
 registerHostnames() {
     [ $# -eq 0 ] && {
         return
     }
 
-    aliases=$(getNginxAliases)
-
-    aliases=$(echo \[$aliases\] | tr "\n " ',')
     while [ $# -gt 0 ]; do
-        newhost=$1
-        aliases=$(echo $aliases | newname=$1 yq e '. += env(newname)' - 2>/dev/null)
+        addAlias "${LARAKIT_HOME}" "${1}"
         shift
     done
-    aliases=$(echo $aliases | yq e 'unique' - | sort)
-
-    errors=$(aliases=$aliases yq e -iP '.services.nginx.networks.backend.aliases = env(aliases)' "$COMPOSE_ALIASES")
 }
 
 deregisterHostnames() {
@@ -508,25 +490,10 @@ deregisterHostnames() {
         return
     }
 
-    aliases=$(getNginxAliases)
-    [ "$aliases" = 'null' ] && {
-        # nothing to do
-        return
-    }
-
     while [ $# -gt 0 ]; do
-        hostname=$1
-        aliases=$(echo $aliases | sed "s/$hostname//")
+        removeAlias "${LARAKIT_HOME}" "${1}"
         shift
     done
-    aliases=$(echo $aliases | tr "\n " ',')
-    aliases=$(echo \[$aliases\] | yq e 'unique' - 2>/dev/null)
-
-    [ "$aliases" = '' ] && {
-        aliases='[]'
-    }
-
-    errors=$(newaliases="$aliases" yq e -iP '.services.nginx.networks.backend.aliases = env(newaliases)' "$COMPOSE_ALIASES")
 }
 
 reset() {
@@ -540,9 +507,7 @@ reset() {
 
     resetEnvironment "${LARAKIT_HOME}"
 
-    rm -f "${COMPOSE_ALIASES}"
-    touch "$COMPOSE_ALIASES"
-    aliases="[]" yq e -iP '.services.nginx.networks.backend.aliases = env(aliases)' "$COMPOSE_ALIASES" 2>/dev/null
+    resetAliases "${LARAKIT_HOME}"
 }
 
 checkDependencies
