@@ -30,6 +30,7 @@
 
     # Local dev domains
     address=/.test/127.0.0.1
+    address=/.test/::1
     address=/.lo/127.0.0.1
     ```
 
