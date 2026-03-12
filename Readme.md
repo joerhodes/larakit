@@ -39,7 +39,7 @@ This document outlines the steps for setting up a functioning development enviro
 		
 1. Next you should build the containers for the version of PHP that you need to work with.
 
-		larakit switch 8.1
+		larakit switch 8.3
 
 ## Platform Setup:
 
@@ -47,10 +47,6 @@ This document outlines the steps for setting up a functioning development enviro
 
     Please follow [LeadForcePro Initial Deployment](https://bitbucket.org/fusemind/lfpro/src/master/docs/InitialDeployment.md)
 
-1. LeadForce 2:
-
-    Please follow [LeadForce 2](LeadForce2.md) to setup all LF2 dependencies such as YUI
-        
 
 ## General Usage (to replace devkit):
 

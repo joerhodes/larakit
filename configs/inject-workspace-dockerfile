@@ -45,13 +45,6 @@ RUN apt-get install -y tcm poppler-utils ca-certificates curl gnupg lsb-release;
         rm -r pdflib; \
         rm pdflib.tar.gz; \
     fi; \
-    if [ ${LARADOCK_PHP_VERSION} = "5.6" ] ; then \
-        iniFile="/etc/php/${LARADOCK_PHP_VERSION}/cli/php.ini"; \
-        bakFile="${iniFile}.bak"; \
-        mv "${iniFile}" "${bakFile}"; \
-        sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"; \
-        rm "${bakFile}"; \
-    fi; \
     mkdir -m 0755 -p /etc/apt/keyrings; \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg; \
     echo \

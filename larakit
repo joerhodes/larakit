@@ -27,7 +27,7 @@ usage() {
     printf "    down                    Shutdown Laradock services.\n"
     printf "    ps                      Display running containers.\n"
     printf "    logs                    Display container logs.\n"
-    printf "    switch version          Switch to PHP version: 5.6, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5.\n"
+    printf "    switch version          Switch to PHP version: 7.4, 8.1, 8.2, 8.3, 8.4, 8.5.\n"
     printf "    nginx install           Copy nginx config templates to current project.\n"
     printf "    register arg...         Map one or more hostnames into Larakit containers\n"
     printf "    deregister arg...       Remove one of more hostnames from Larakit mapping\n"
@@ -319,10 +319,10 @@ changePhpVersion() {
     newVersion=$1
 
     case "${newVersion}" in
-    5.6 | 7.2 | 7.3 | 7.4 | 8.0 | 8.1 | 8.2 | 8.3 | 8.4 | 8.5) ;;
+    7.4 | 8.1 | 8.2 | 8.3 | 8.4 | 8.5) ;;
 
     *)
-        printf "Invalid PHP version!  Use of one 8.5, 8.4, 8.3, 8.2, 8.1, 7.4, 7.3, 7.2 or 5.6 (if desperate)\n"
+        printf "Invalid PHP version!  Use of one 8.5, 8.4, 8.3, 8.2, 8.1, or 7.4\n"
         exit
         ;;
     esac
