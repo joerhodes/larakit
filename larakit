@@ -241,7 +241,13 @@ execService() {
 
     setWorkingDirectory
 
-    docker exec -it -w "${WORKINGDIR}" ${MEMORY_LIMIT} ${container} $*
+    if [ -t 0 ]; then
+        ttyFlags='-it'
+    else
+        ttyFlags='-i'
+    fi
+
+    docker exec ${ttyFlags} -w "${WORKINGDIR}" ${MEMORY_LIMIT} ${container} $*
 }
 
 stackRunning() {
