@@ -94,3 +94,5 @@ larakit laradock update
 larakit switch PHP_VERSION
 larakit up
 ```
+
+**NOTE** If there are containers that fail to start after upgrading, you may need to remove files under `~/.laradock`.
