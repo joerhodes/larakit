@@ -19,6 +19,7 @@ usage() {
     printf "    laradock install        Install Laradock.\n"
     printf "    laradock update         Pull down latest Laradock updates.\n"
     printf "    laradock config         Copy custom config files to Laradock.\n"
+    printf "    depCheck                Check that local dependencies are installed.\n"
     printf "    dnsCheck                Run a test to check if containers can resolve DNS correctly.\n"
     printf "    env [reset]             [Reset and] show the values used for container building.\n"
     printf "    exec command [arg...]   Run a command in the workspace container.\n"
@@ -516,8 +517,6 @@ reset() {
     resetAliases "${LARAKIT_HOME}"
 }
 
-checkDependencies
-
 # load environment overrides
 [ ! -f "${LARAKIT_HOME}"/configs/environment ] && {
     updateEnvironment "${LARAKIT_HOME}"
@@ -537,6 +536,10 @@ help)
 
 laradock)
     laradockCommand $*
+    ;;
+
+depCheck)
+    checkDependencies
     ;;
 
 dnsCheck)

@@ -28,14 +28,18 @@ This document outlines the steps for setting up a functioning development enviro
 
 1.	Checkout this project to your local system, eg `~/Sites/larakit`
 
-1.	Add the checkout location to your shell search path in either `~/.bashrc` or `~/.zshrc`
+   1.	Add the checkout location to your shell search path in either `~/.bashrc` or `~/.zshrc`
 
-		export PATH=$PATH:~/Sites/larakit
-	Then start a new terminal and verify the **PATH** variable.
+           `export PATH=$PATH:~/Sites/larakit`
+   Then start a new terminal and verify the **PATH** variable.
+
 		
-1.	Install [Laradock](https://laradock.io)
+1.	Verify local Dependencies and Install [Laradock](https://laradock.io)
 
-		larakit laradock install
+```bash
+larakit depCheck
+larakit laradock install
+```
 		
 1. Next you should build the containers for the version of PHP that you need to work with.
 
@@ -90,6 +94,7 @@ docker container prune -f
 docker buildx prune -f 
 docker volume prune -f
 docker system prune -a
+larakit depCheck
 larakit laradock update
 larakit switch PHP_VERSION
 larakit up
