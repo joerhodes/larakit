@@ -25,9 +25,12 @@
 1.	Add the following lines to `/opt/homebrew/etc/dnsmasq.conf`.  If this file does not exist, try this path `/usr/local/etc/dnsmasq.conf`.  
 
     ```    
+    # Run on a non-standard port to avoid conflicting with macOS's mDNSResponder on :53
+    port=5300
+    
     # Listen on all interfaces (so Docker Desktop VM can reach it)
     listen-address=0.0.0.0,127.0.0.1
-
+    
     # Local dev domains
     address=/.test/127.0.0.1
     address=/.test/::1
@@ -38,8 +41,8 @@
 
     ```
     sudo mkdir -v /etc/resolver
-    sudo bash -c 'echo "nameserver 127.0.0.1" > /etc/resolver/lo'
-    sudo bash -c 'echo "nameserver 127.0.0.1" > /etc/resolver/test'
+    sudo bash -c 'printf "nameserver 127.0.0.1\nport 5300\n" > /etc/resolver/lo'
+    sudo bash -c 'printf "nameserver 127.0.0.1\nport 5300\n" > /etc/resolver/test'
     ```
 
 1.	Start dsnmasq service.   **Note** You may need to run this twice.
