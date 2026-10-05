@@ -35,7 +35,7 @@ usage() {
     printf "    reset                   Removes all laradock images, resets environment and aliases files\n"
     printf "\n"
     printf "Additional commands and options are passed directly to docker-compose.\n"
-    printf "Run 'docker-compose help' for more information.\n"
+    printf "Run 'docker compose help' for more information.\n"
     printf "\n"
 }
 
@@ -56,32 +56,9 @@ updateWorkspace() {
 
     [ -z "$inject" ] && return
 
-    mv "${LARADOCK_HOME}"/workspace/Dockerfile "${LARADOCK_HOME}"/workspace/Dockerfile.bak
+    injectAptCleanup "${LARADOCK_HOME}/workspace/Dockerfile"
 
-    awk "BEGIN { nearEnd=0; atStart=1; }
-        /Final Touch/ { nearEnd=1; }
-        {
-            if (atStart && (\$0 ~ /apt-get update -yqq/)) {
-                print \"    apt-get clean && \\\\\";
-                print \"    apt-get autoclean && \\\\\";
-                print \"    rm -rf /var/lib/apt/lists/ && \\\\\";
-                print \"    apt update && \\\\\";
-                atStart=0;
-            }
-
-            if (!nearEnd || (\$0 !~ /USER root/)) {
-                print;
-            } else {
-                print;
-                print \"\";
-                system(\"cat '${LARAKIT_HOME}/configs/inject-workspace-dockerfile'\");
-                print \"\";
-            }
-        }" \
-        "${LARADOCK_HOME}"/workspace/Dockerfile.bak \
-        >"${LARADOCK_HOME}"/workspace/Dockerfile
-
-    rm "${LARADOCK_HOME}"/workspace/Dockerfile.bak
+    injectSnippetFile "${LARADOCK_HOME}/workspace/Dockerfile" "${LARAKIT_HOME}/configs/inject-workspace-dockerfile"
 }
 
 updatePhpFpm() {
@@ -92,18 +69,11 @@ updatePhpFpm() {
 
     source "${LARAKIT_HOME}/configs/environment"
 
-    version=5.6
-    iniFile="${LARADOCK_HOME}/php-fpm/php${version}.ini"
-    bakFile="${iniFile}.bak"
-    mv "${iniFile}" "${bakFile}"
-    sed 's/^short_open_tag = Off/short_open_tag = On/' "${bakFile}" > "${iniFile}"
-    rm "${bakFile}"
-
     [ -n "${LARAVEL_MEMORY_LIMIT}" ] && {
         iniFile="${LARADOCK_HOME}/php-fpm/laravel.ini"
         bakFile="${iniFile}.bak"
         mv "${iniFile}" "${bakFile}"
-        sed 's/^memory_limit = .*/memory_limit = '${LARAVEL_MEMORY_LIMIT}'/' "${bakFile}" > "${iniFile}"
+        sed "s/^memory_limit = .*/memory_limit = ${LARAVEL_MEMORY_LIMIT}/" "${bakFile}" > "${iniFile}"
         rm "${bakFile}"
     }
 
@@ -113,32 +83,9 @@ updatePhpFpm() {
 
     [ -z "$inject" ] && return
 
-    mv "${LARADOCK_HOME}"/php-fpm/Dockerfile "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak
+    injectAptCleanup "${LARADOCK_HOME}/php-fpm/Dockerfile"
 
-    awk "BEGIN { nearEnd=0; atStart=1; }
-        /Final Touch/ { nearEnd=1; }
-        {
-            if (atStart && (\$0 ~ /apt-get update -yqq/)) {
-                print \"    apt-get clean && \\\\\";
-                print \"    apt-get autoclean && \\\\\";
-                print \"    rm -rf /var/lib/apt/lists/ && \\\\\";
-                print \"    apt update && \\\\\";
-                atStart=0;
-            }
-
-            if (!nearEnd || (\$0 !~ /USER root/)) {
-                print;
-            } else {
-                print;
-                print \"\";
-                system(\"cat '${LARAKIT_HOME}/configs/inject-php-fpm-dockerfile'\");
-                print \"\";
-            }
-        }" \
-        "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak \
-        >"${LARADOCK_HOME}"/php-fpm/Dockerfile
-
-    rm "${LARADOCK_HOME}"/php-fpm/Dockerfile.bak
+    injectSnippetFile "${LARADOCK_HOME}/php-fpm/Dockerfile" "${LARAKIT_HOME}/configs/inject-php-fpm-dockerfile"
 }
 
 installLaradock() {
@@ -305,16 +252,13 @@ buildPhpVersion() {
 
     source "${LARAKIT_HOME}"/configs/environment
 
-    for line in $(cat "${LARAKIT_HOME}"/configs/environment); do
+    while IFS= read -r line; do
         [[ "$line" == \#* ]] && continue
         [[ "$line" != *=* ]] && continue
-        [[ "$line" == *SERVICES=* ]] && continue
 
         variable=$(echo $line | cut -d= -f1)
-        [ "$variable" != 'DEFAULT_SERVICES' ] && [ "$variable" != 'PHP_SERVICES' ] && export $variable
-    done
-
-    export DEFAULT_SERVICES PHP_SERVICES
+        export $variable
+    done < "${LARAKIT_HOME}"/configs/environment
 
     [[ "$PHP_SERVICES" == *workspace* ]] && updateWorkspace
     [[ "$PHP_SERVICES" == *php-fpm* ]] && updatePhpFpm
@@ -326,12 +270,13 @@ changePhpVersion() {
     newVersion=$1
 
     case "${newVersion}" in
-    7.4 | 8.1 | 8.2 | 8.3 | 8.4 | 8.5) ;;
+        # PHP_VERSION_SYNC: keep this list in sync with larakit's changePhpVersion() version list
+        7.4 | 8.1 | 8.2 | 8.3 | 8.4 | 8.5) ;;
 
-    *)
-        printf "Invalid PHP version!  Use of one 8.5, 8.4, 8.3, 8.2, 8.1, or 7.4\n"
-        exit
-        ;;
+        *)
+            printf "Invalid PHP version!  Use of one 8.5, 8.4, 8.3, 8.2, 8.1, or 7.4\n"
+            exit
+            ;;
     esac
 
     cwd=$(pwd)
@@ -383,7 +328,7 @@ checkDependencies() {
         exit 1
     }
 
-    checkDependency 'dnsmasq' 'dsnmasq is not installed!  Follow Larakit Instructions.md to complete installation!' || {
+    checkDependency 'dnsmasq' 'dnsmasq is not installed!  Follow dnsmasq-setup.md to complete installation!' || {
         exit 1
     }
 
@@ -445,7 +390,7 @@ loadProjectHostname() {
     [ -f .env ] && {
         source .env
 
-        [ "$VHOST_NAME" = '' -a "$APP_URL" != '' ] && {
+        [[ "$VHOST_NAME" = '' && "$APP_URL" != '' ]] && {
             HOSTNAME=$(echo $APP_URL | awk -F/ '{print $3}')
             TLD=$(echo $HOSTNAME | awk -F. '{print $(NF)}')
 
@@ -519,7 +464,7 @@ reset() {
 
 # load environment overrides
 [ ! -f "${LARAKIT_HOME}"/configs/environment ] && {
-    updateEnvironment "${LARAKIT_HOME}"
+    resetEnvironment "${LARAKIT_HOME}"
 }
 source "${LARAKIT_HOME}"/configs/environment
 

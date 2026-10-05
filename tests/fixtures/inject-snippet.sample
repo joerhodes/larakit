@@ -1,0 +1,2 @@
+# Add curl
+RUN apt-get install curl

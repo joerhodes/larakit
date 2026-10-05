@@ -10,10 +10,12 @@
 #   2) sudo cp /home/APP_USER/current/resources/supervisord/APP_USER.ini /etc/supervisor/conf.d/APP_USER.conf
 #      sudo systemctl restart supervisor
 #      sudo systemctl status supervisor (and supervisorctl status if available)
-#   3) sudo cp /home/APP_USER/current/php-fpm.conf /etc/php/8.3/fpm/pool.d/APP_USER.conf
-#      sudo php-fpm8.3 -t
-#      sudo systemctl restart php8.1-fpm
-#      sudo systemctl status php8.1-fpm
+#   3) Auto-detects the installed PHP version and PHP-FPM pool directory
+#      (e.g. /etc/php/8.4/fpm/pool.d on Ubuntu; falls back to /etc/php-fpm.d on RHEL-family layouts)
+#      sudo cp /home/APP_USER/current/php-fpm.conf <detected pool dir>/APP_USER.conf
+#      sudo php-fpm<ver> -t
+#      sudo systemctl restart <detected php-fpm service>
+#      sudo systemctl status <detected php-fpm service>
 #   4) Detect ENV as one of dev, stage, or production by checking which nginx.ENV.conf exists under /home/APP_USER/current
 #      sudo cp /home/APP_USER/current/nginx.ENV.conf /etc/nginx/sites-available/APP_USER.conf
 #      sudo ln -s /etc/nginx/sites-available/APP_USER.conf /etc/nginx/sites-enabled/APP_USER.conf (force if exists)
@@ -32,6 +34,11 @@ fi
 SERVER=$1
 APP_USER=$2
 
+if ! [[ "$APP_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
+  echo "Error: '$APP_USER' is not a valid Linux username." >&2
+  exit 1
+fi
+
 # Verify we can SSH to the server (non-interactive)
 if ! ssh -o BatchMode=yes -o ConnectTimeout=10 -q "$SERVER" exit; then
   echo "Error: Unable to SSH into '$SERVER'. Please verify connectivity and credentials." >&2
@@ -41,6 +48,7 @@ fi
 echo "SSH connectivity to '$SERVER' verified. Proceeding with remote configuration for user '$APP_USER'."
 
 # Run remote configuration
+set +e
 ssh "$SERVER" bash -s -- "$APP_USER" <<'REMOTE_SCRIPT'
 set -euo pipefail
 APP_USER="$1"
@@ -95,7 +103,6 @@ POOL_DIR=""
 if [ -n "$PHP_VER" ] && [ -d "/etc/php/$PHP_VER/fpm/pool.d" ]; then
   POOL_DIR="/etc/php/$PHP_VER/fpm/pool.d"
 elif [ -d "/etc/php-fpm.d" ]; then
-  # RHEL/AlmaLinux layout
   POOL_DIR="/etc/php-fpm.d"
 else
   CAND=$(ls -d /etc/php/*/fpm/pool.d 2>/dev/null | head -n1 || true)
@@ -112,7 +119,8 @@ else
 
   # Find a php-fpm test command
   FPM_TEST=""
-  for c in "php-fpm$PHP_VER" php-fpm php-fpm8.3 php-fpm8.2 php-fpm8.1; do
+  # PHP_VERSION_SYNC: keep this list in sync with larakit's changePhpVersion() version list
+  for c in "php-fpm$PHP_VER" php-fpm php-fpm8.5 php-fpm8.4 php-fpm8.3 php-fpm8.2 php-fpm8.1; do
     if command -v "$c" >/dev/null 2>&1; then FPM_TEST="$c -t"; break; fi
   done
   if [ -n "$FPM_TEST" ]; then
@@ -190,12 +198,12 @@ else
   echo "All steps completed successfully."
 fi
 REMOTE_SCRIPT
-
 RC=$?
+set -e
+
 if [ $RC -ne 0 ]; then
   echo "postFirstDeployment failed with exit code $RC" >&2
   exit $RC
 fi
 
 echo "postFirstDeployment completed successfully for '$APP_USER' on '$SERVER'."
-

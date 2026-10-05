@@ -1,6 +1,6 @@
-.idea
-.DS_Store
 laradock
-configs/environment*
-!configs/environment.example
+configs/environment
 configs/docker-compose.aliases.yml
+tests/bats
+tests/helpers
+.DS_Store

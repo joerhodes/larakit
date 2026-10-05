@@ -1,8 +1,31 @@
-#!/usr/bin/env bash
 #
 # Utility function to support larakit
 #
 
+[ -n "${LARAKIT_UTILS_LOADED:-}" ] && return
+LARAKIT_UTILS_LOADED=1
+
+# backupFile - moves filePath to filePath.bak, for use before an in-place edit
+#   $1 - path to file
+backupFile() {
+    local filePath="$1"
+    local backupPath="${filePath}.bak"
+
+    [ -f "${filePath}" ] || return 1
+    mv "${filePath}" "${backupPath}"
+}
+
+# restoreBackup - moves filePath.bak back over filePath (used on a failed edit)
+restoreBackup() {
+    local filePath="$1"
+    mv "${filePath}.bak" "${filePath}"
+}
+
+# removeBackup - discards filePath.bak after a successful edit
+removeBackup() {
+    local filePath="$1"
+    rm -f "${filePath}.bak"
+}
 #
 # showEnvironment - Displays the contents of the configs/environment files
 #    $1 - Directory for Larakit Home
@@ -20,8 +43,8 @@ showEnvironment() {
 resetEnvironment() {
     [ $# -ne 1 ] && return 1
 
-    envFile="${1}/configs/environment"
-    [ -f "${envFile}" ] && cp "${envFile}" "${envFile}.bak"
+    local envFile="${1}/configs/environment"
+    [ -f "${envFile}" ] && { backupFile "${envFile}" || return 1; }
 
     {
         printf "# This file overrides the features enabled in the various Laradock containers.\n"
@@ -53,11 +76,11 @@ resetEnvironment() {
         printf "PHP_FPM_INSTALL_SSHPASS=true\n"
         printf "PHP_FPM_INSTALL_SOAP=true\n"
         printf "PHP_FPM_INSTALL_PHPREDIS=true\n"
-        printf "POSTGRES_CLIENT_VERSION=16\n"
-        printf "PHP_VERSION=%s\n" "8.4"
+        printf "POSTGRES_CLIENT_VERSION=17\n"
+        printf "PHP_VERSION=%s\n" "8.5"
         printf "DEFAULT_SERVICES=\"%s\"\n" "${DEFAULT_SERVICES:-nginx redis}"
         printf "PHP_SERVICES=\"%s\"\n" "${PHP_SERVICES:-workspace php-fpm}"
-    } > "${envFile}"
+    } > "${envFile}" || { restoreBackup "${envFile}"; return 1; }
 }
 
 #
@@ -68,28 +91,31 @@ resetEnvironment() {
 updateEnvironment() {
     [ $# -ne 2 ] && return 1
 
-    larakitHome=$1
-    phpVersion=$2
+    local larakitHome="$1"
+    local phpVersion="$2"
 
-    envFile="${larakitHome}/configs/environment"
-    tmpFile="${envFile}.tmp"
+    local envFile="${larakitHome}/configs/environment"
+    local bakFile="${envFile}.bak"  # Keep name in sync with the backupFile method
 
-    mv "${envFile}" "${tmpFile}"
-    cat "${tmpFile}" | \
-        sed -e "s/PHP_VERSION=.*/PHP_VERSION=${phpVersion}/" \
-            -e "/PHP_FPM_BASE_IMAGE_TAG/d" \
-            -e "/PHP_FPM_INSTALL_OPCACHE/d" \
-        > "${envFile}"
+    backupFile "${envFile}" || return 1
+    sed -e "s/PHP_VERSION=.*/PHP_VERSION=${phpVersion}/" \
+        -e "/PHP_FPM_BASE_IMAGE_TAG/d" \
+        -e "/PHP_FPM_INSTALL_OPCACHE/d" \
+    "${bakFile}" > "${envFile}" ||{ restoreBackup "${envFile}"; return 1; }
 
+    # PHP 7.4 requires pinning to an older base image tag; without it, the image pull fails.
     [ "${phpVersion}" = "7.4" ] && {
-        echo "PHP_FPM_BASE_IMAGE_TAG_PREFIX=20250222" >> "${envFile}"
+        echo "PHP_FPM_BASE_IMAGE_TAG_PREFIX=20250222" >> "${envFile}" || { restoreBackup "${envFile}" ; return 1; }
     }
 
+    # New PHP releases sometimes ship with opcache install/build issues that get
+    # fixed upstream later. If 8.5's build starts failing, try disabling opcache
+    # install as a workaround; safe to remove once upstream fixes land.
     [ "${phpVersion}" = "8.5" ] && {
-        echo "PHP_FPM_INSTALL_OPCACHE=false" >> "${envFile}"
+        echo "PHP_FPM_INSTALL_OPCACHE=false" >> "${envFile}"  || { restoreBackup "${envFile}"; return 1; }
     }
 
-    rm "${tmpFile}"
+    removeBackup "${envFile}"
 }
 
 #
@@ -100,12 +126,11 @@ updateEnvironment() {
 checkDependency() {
     [ $# -ne 2 ] && return 1
 
-    dependency=$1
-    message=$2
+    local dependency=$1
+    local message=$2
 
-    path=$(which $dependency)
-    [ $? -ne 0 ] && {
-        printf "\n${message}\n"
+    command -v "${dependency}" >/dev/null 2>&1 || {
+        printf "\n%s\n" "${message}"
         return 1
     }
 
@@ -116,13 +141,15 @@ checkDependency() {
 # loadSshKeys - Loads the user's SSH keys into the SSH agent
 #
 loadSshKeys() {
-    keys=$(ssh-add -l)
+    local keys=$(ssh-add -l)
     [ -n "${keys}" ] && return 0
 
     printf "\nLoading SSH Keys for SSH Agent\n"
-    macOsVersion=$(sw_vers --productVersion)
+    local macOsVersion=$(sw_vers --productVersion)
 
-    options='-K'
+    [ -z "${macOsVersion}" ] && return 1
+
+    local options='-K'
     [ ${macOsVersion:0:2} -ge 12 ] && options='--apple-use-keychain'
 
     ssh-add $options

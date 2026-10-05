@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 
 # Script to create and set up a remote application user account.
-# Automates the following steps with error detection and reporting:
+# Automates the following manual steps with error detection and reporting:
 #   scp deploy.id_rsa SERVER:
 #   ssh SERVER
 #   sudo useradd -m -s /usr/bin/bash APPUSER
 #   sudo mkdir /home/APPUSER/.ssh
 #   sudo mv deploy.id_rsa /home/APPUSER/.ssh/id_rsa
 #   sudo chown -R APPUSER:APPUSER /home/APPUSER/.ssh
-#   sudo su - APPUSER
-#   chmod -R go-rwx .ssh
+#   sudo -u APPUSER bash -c 'chmod -R go-rwx ~/.ssh'
 
 # Usage: ./createApplicationUser.sh {server} {application-account}
 #   - {server}: SSH target in the form user@host or host (if your local user matches a remote user)
 #   - {application-account}: the username to create on the remote server
 
 # Notes:
+#   - Targets Ubuntu/Debian-based systems.
 #   - Requires existing SSH access to the remote server.
 #   - The remote account used for SSH must have sudo privileges (may prompt for a password).
 #   - Uses the private key located at ./keys/deploy.id_rsa in this repository.
@@ -58,9 +58,11 @@ fi
 echo "Deploy key transferred successfully."
 
 # run the remote setup commands in a single SSH session
+set +e
 cat <<'REMOTE_SCRIPT' | ssh "$SERVER" bash -s -- "$APP_USER"
 set -euo pipefail
 APP_USER="$1"
+PHP_FPM_RESTART_GROUP="envoyer"   # group granting sudo access to restart php-fpm
 
 log() { echo "[remote] $*"; }
 
@@ -93,29 +95,27 @@ sudo chown -R "$APP_USER:$APP_USER" "/home/$APP_USER/.ssh"
 log "Locking down permissions on .ssh ..."
 sudo -u "$APP_USER" bash -c 'chmod -R go-rwx ~/.ssh'
 
-# Handle 'envoyer' group membership
-if getent group envoyer >/dev/null 2>&1; then
-  log "Group 'envoyer' exists; ensuring '$APP_USER' is a member..."
-  if id -nG "$APP_USER" | grep -qw envoyer; then
-    log "User '$APP_USER' is already a member of 'envoyer'; skipping."
+# Handle php-fpm restart group membership
+if getent group "$PHP_FPM_RESTART_GROUP" >/dev/null 2>&1; then
+  log "Group '$PHP_FPM_RESTART_GROUP' exists; ensuring '$APP_USER' is a member..."
+  if id -nG "$APP_USER" | grep -qw "$PHP_FPM_RESTART_GROUP"; then
+    log "User '$APP_USER' is already a member of '$PHP_FPM_RESTART_GROUP'; skipping."
   else
-    sudo usermod -a -G envoyer "$APP_USER"
-    log "User '$APP_USER' added to 'envoyer' group."
+    sudo usermod -a -G "$PHP_FPM_RESTART_GROUP" "$APP_USER"
+    log "User '$APP_USER' added to '$PHP_FPM_RESTART_GROUP' group."
   fi
 else
-  echo "[remote] Warning: Group 'envoyer' does not exist on this server; user '$APP_USER' not added." >&2
+  echo "[remote] Warning: Group '$PHP_FPM_RESTART_GROUP' does not exist on this server; user '$APP_USER' not added." >&2
 fi
 
 log "Completed setup for user '$APP_USER'."
 REMOTE_SCRIPT
-
 RC=$?
+set -e
+
 if [ $RC -ne 0 ]; then
   echo "Error: Remote setup failed with exit code $RC." >&2
   exit $RC
 fi
 
 echo "Success: Application user '$APP_USER' was configured on '$SERVER'."
-
-
-

@@ -1,0 +1,8 @@
+FROM base
+RUN set -xe; \
+    apt-get update -yqq && \
+    apt-get install -y something
+
+# Final Touch
+USER root
+RUN echo done
