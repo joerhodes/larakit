@@ -1,30 +1,4 @@
 ###########################################################################
-# PDFLib for student_insurance
-#
-# https://www.pdflib.com/download/pdflib-product-family/
-###########################################################################
-RUN set -eux;  \
-    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
-        cd /tmp;  \
-        if [ $(php -r "echo PHP_MINOR_VERSION;") -le 3 ]; then \
-            PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-aarch64-php.tar.gz; \
-            if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1002/PDFlib-10.0.2-Linux-x64-php.tar.gz ; fi; \
-        else \
-            PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1100/PDFlib-11.0.0-Linux-aarch64-php.tar.gz; \
-            if [ "$(arch)" != 'aarch64' ]; then PDFLIB_URL=https://www.pdflib.com/binaries/PDFlib/1100/PDFlib-11.0.0-Linux-x64-php.tar.gz; fi; \
-        fi; \
-        curl -L -o pdflib.tar.gz $PDFLIB_URL; \
-        tar -xzf pdflib.tar.gz; \
-        mv PDFlib-* pdflib; \
-        PHP_EXT_DIR=`php-config --extension-dir`; \
-        PHP_MAIN_VERSION=$(php --version | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -n1 | cut -d. -f1-2 | sed 's/\.//g'); \
-        cp pdflib/bind/php/php-${PHP_MAIN_VERSION}0-nts/php_pdflib.so $PHP_EXT_DIR; \
-        docker-php-ext-enable php_pdflib; \
-        rm -r pdflib; \
-        rm pdflib.tar.gz; \
-    fi
-
-###########################################################################
 # Copy the version specific PHP ini in case there are any changes
 ###########################################################################
 COPY ./php${LARADOCK_PHP_VERSION}.ini /usr/local/etc/php/

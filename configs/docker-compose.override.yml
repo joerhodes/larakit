@@ -2,7 +2,6 @@ services:
   workspace:
     volumes:
       - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
-      - ~/SitesHome:/home2
       - ~/.composer:/root/.composer
       - ~/.gnupg:/root/.gnupg
     environment:
@@ -11,14 +10,10 @@ services:
       - "host.docker.internal:host-gateway"
       - "docker.for.mac.host.internal:host-gateway"
   php-fpm:
-    volumes:
-      - ~/SitesHome:/home2
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "docker.for.mac.host.internal:host-gateway"
   php-worker:
-    volumes:
-      - ~/SitesHome:/home2
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "docker.for.mac.host.internal:host-gateway"
@@ -29,4 +24,3 @@ services:
   docker-in-docker:
     command:
       - "--dns=192.168.65.254"
-
